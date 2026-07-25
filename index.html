@@ -1,0 +1,1781 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dracula">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lead Ops Intelligence</title>
+<style>
+/* ============================================================
+   LEAD OPS INTELLIGENCE — Executive Command Center
+   Themes: set data-theme on <html> — "dracula" (default),
+   "command" (black/green), "industrial". Every color is a
+   variable below; edit a block and the whole app follows.
+   ============================================================ */
+:root, html[data-theme="dracula"] {
+  --bg: #0A0D19; --side: #0C1020; --surface: #12172A; --raised: #1A2038;
+  --border: #242C4C; --hairline: #1B2240;
+  --accent: #BD93F9;
+  --c1: #BD93F9; --c2: #8BE9FD; --c3: #FF79C6; --c4: #FFB86C;
+  --c5: #50FA7B; --c6: #6272A4;
+  --good: #50FA7B; --warn: #FFB86C; --crit: #FF5555;
+  --text: #F4F5FA; --muted: #8E94B4;
+  --chip-hi-bg: rgba(255,85,85,.14); --chip-md-bg: rgba(255,184,108,.14);
+}
+html[data-theme="command"] {
+  --bg: #080D0A; --side: #0A100C; --surface: #101813; --raised: #17231B;
+  --border: #24402C; --hairline: #1A2B20;
+  --accent: #6CC14C;
+  --c1: #6CC14C; --c2: #9EDB8A; --c3: #F2B84B; --c4: #5FA8D3;
+  --c5: #6CC14C; --c6: #55705C;
+  --good: #6CC14C; --warn: #F2B84B; --crit: #E05A47;
+  --text: #F3F7F1; --muted: #92A394;
+  --chip-hi-bg: rgba(224,90,71,.16); --chip-md-bg: rgba(242,184,75,.14);
+}
+html[data-theme="industrial"] {
+  --bg: #151719; --side: #191C1F; --surface: #202327; --raised: #2A2E33;
+  --border: #3A4047; --hairline: #2C3136;
+  --accent: #6CC14C;
+  --c1: #6CC14C; --c2: #7A93A8; --c3: #D99A2B; --c4: #B57BD6;
+  --c5: #6CC14C; --c6: #5B6169;
+  --good: #6CC14C; --warn: #D99A2B; --crit: #E05A47;
+  --text: #F2F3F4; --muted: #A5ABB3;
+  --chip-hi-bg: rgba(224,90,71,.16); --chip-md-bg: rgba(217,154,43,.14);
+}
+
+/* ---------- base ---------- */
+* { box-sizing: border-box; margin: 0; }
+html { scroll-behavior: smooth; scrollbar-color: var(--border) var(--bg); }
+body { background: var(--bg); color: var(--text);
+  font: 13.5px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif; }
+.num { font-variant-numeric: tabular-nums; }
+.micro { font-size: 10.5px; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted); }
+button, select { font: inherit; color: var(--text); background: var(--raised);
+  border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
+select { padding: 6px 10px; }
+button:hover, select:hover { border-color: var(--accent); }
+a { color: var(--accent); text-decoration: none; }
+svg { display: block; }
+svg text { font-family: "Segoe UI", system-ui, sans-serif; }
+
+/* ---------- app shell ---------- */
+.app { display: grid; grid-template-columns: 216px minmax(0, 1fr); min-height: 100vh; }
+.side { background: var(--side); border-right: 1px solid var(--hairline);
+  padding: 18px 14px 20px; position: sticky; top: 0; height: 100vh;
+  overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.brandrow { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; }
+.logo { width: 38px; height: 38px; border-radius: 10px; background: var(--raised);
+  display: grid; place-items: center; border: 1px solid var(--border); flex: none; }
+.logo svg { width: 20px; height: 20px; }
+.brandrow h1 { font-size: 14.5px; font-weight: 700; line-height: 1.25; }
+.brandrow .sub { font-size: 10.5px; color: var(--muted); }
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav a { display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+  border-radius: 8px; color: var(--muted); font-size: 12.5px; font-weight: 600; }
+.nav a svg { width: 15px; height: 15px; flex: none; }
+.nav a:hover { background: var(--raised); color: var(--text); }
+.nav a.on { background: var(--raised); color: var(--accent); }
+.side-sec { margin-top: 18px; }
+.side-sec .micro { display: block; margin-bottom: 8px; }
+.swatches { display: flex; gap: 10px; }
+.swatch { width: 44px; height: 52px; border-radius: 10px; padding: 6px 2px 4px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.swatch .ring { width: 20px; height: 20px; border-radius: 50%;
+  border: 2px solid transparent; }
+.swatch span { font-size: 8px; color: var(--muted); font-weight: 600;
+  white-space: nowrap; }
+.swatch.on { border-color: var(--accent); }
+.swatch.on .ring { border-color: var(--text); }
+.healthbox { margin-top: 16px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 12px; padding: 14px 12px;
+  text-align: center; }
+.gauge { margin: 8px auto 4px; position: relative; width: 116px; height: 116px; }
+.gauge .score { position: absolute; inset: 0; display: flex;
+  flex-direction: column; align-items: center; justify-content: center; }
+.gauge .score b { font-size: 30px; font-weight: 750; display: block; line-height: 1.05; }
+.gauge .score i { font-style: normal; font-size: 11.5px; color: var(--muted); }
+.healthbox .hdelta { font-size: 11.5px; margin-top: 4px; }
+.hdelta.up { color: var(--good); } .hdelta.down { color: var(--crit); }
+.hdelta.flat { color: var(--muted); }
+
+/* ---------- content ---------- */
+.content { padding: 14px clamp(14px, 2vw, 26px) 40px; min-width: 0; }
+.filterbar { display: flex; flex-wrap: wrap; align-items: flex-end;
+  gap: 10px 16px; padding-bottom: 14px; }
+.fcol { display: flex; flex-direction: column; gap: 4px; }
+.fcol .micro { letter-spacing: .06em; }
+.daterange { display: flex; gap: 6px; }
+.daterange input { font: inherit; font-size: 12.5px; color: var(--text);
+  background: var(--raised); border: 1px solid var(--border);
+  border-radius: 8px; padding: 5px 8px; color-scheme: dark; }
+.daterange input:hover { border-color: var(--accent); }
+.filterbar .grow { flex: 1; }
+.updated { display: flex; align-items: center; gap: 8px; font-size: 11.5px;
+  color: var(--muted); }
+#refresh { width: 32px; height: 32px; border-radius: 8px; display: grid;
+  place-items: center; }
+#refresh svg { width: 15px; height: 15px; }
+
+.card { background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; min-width: 0; }
+.chead { display: flex; align-items: center; gap: 10px; padding: 13px 16px 0; }
+.chead h2 { font-size: 13.5px; font-weight: 700; }
+.chead .cap { font-size: 11px; color: var(--muted); }
+.chead select { padding: 3px 8px; font-size: 11.5px; border-radius: 6px;
+  margin-left: auto; }
+.cbody { padding: 10px 16px 14px; }
+.cbody > .micro { display: block; margin: 12px 0 5px; }
+.scopechip { font-size: 10.5px; font-weight: 700; color: var(--accent);
+  border: 1px solid var(--accent); border-radius: 20px; padding: 1px 8px; }
+
+/* KPI strip */
+.kpis { display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr)); }
+.kpi { background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 14px 10px; min-width: 0; }
+.kpi .top { display: flex; align-items: center; gap: 8px; }
+.kpi .ico { width: 26px; height: 26px; border-radius: 7px; flex: none;
+  display: grid; place-items: center; }
+.kpi .ico svg { width: 14px; height: 14px; }
+.kpi .lbl { font-size: 11.5px; color: var(--muted); font-weight: 600;
+  line-height: 1.2; }
+.kpi .v { font-size: 27px; font-weight: 750; margin-top: 6px; line-height: 1.1; }
+.kpi .d { font-size: 11px; margin-top: 1px; min-height: 15px; }
+.kpi .d.up { color: var(--good); } .kpi .d.down { color: var(--crit); }
+.kpi .d.flat { color: var(--muted); }
+.kpi .spark { margin-top: 6px; height: 26px; }
+
+/* insight cards + alerts rail */
+.midgrid { display: grid; grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 10px; margin-top: 10px; }
+.midleft { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.insights { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px; }
+.insight { background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 13px 15px; }
+.insight .ihead { display: flex; align-items: center; gap: 8px;
+  font-size: 12.5px; font-weight: 700; margin-bottom: 7px; }
+.insight .ihead svg { width: 16px; height: 16px; }
+.insight ul { list-style: none; }
+.insight li { position: relative; padding: 2.5px 0 2.5px 13px; font-size: 12px;
+  color: var(--text); }
+.insight li::before { content: "•"; position: absolute; left: 0; }
+.insight.wins li::before { color: var(--good); }
+.insight.warns li::before { color: var(--warn); }
+.insight p { font-size: 12px; margin-top: 3px; }
+.alertcard .cbody { padding: 4px 10px 10px; }
+.alertrow { display: flex; gap: 10px; padding: 10px 6px;
+  border-top: 1px solid var(--hairline); align-items: flex-start; }
+.alertrow:first-child { border-top: none; }
+.alertrow svg { width: 15px; height: 15px; flex: none; margin-top: 1px; }
+.alertrow .t { font-size: 12.5px; font-weight: 650; line-height: 1.3; }
+.alertrow .x { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+.sevchip { margin-left: auto; flex: none; font-size: 10.5px; font-weight: 700;
+  border-radius: 6px; padding: 2px 8px; }
+.sevchip.hi { color: var(--crit); background: var(--chip-hi-bg); }
+.sevchip.md { color: var(--warn); background: var(--chip-md-bg); }
+.sevchip.ok { color: var(--good); background: transparent; }
+.viewall { font-size: 11px; font-weight: 700; margin-left: auto;
+  background: none; border: none; color: var(--accent); }
+
+/* chart row */
+.charts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px; }
+.legend { display: flex; flex-wrap: wrap; gap: 3px 14px; padding: 6px 16px 0;
+  font-size: 11px; color: var(--muted); }
+.legend .key { display: inline-flex; align-items: center; gap: 6px; }
+.legend .sw { width: 10px; height: 3px; border-radius: 2px; display: inline-block; }
+.legend .sw.dash { background: repeating-linear-gradient(90deg,
+  currentColor 0 3px, transparent 3px 5px); }
+
+/* bottom row */
+.botgrid { display: grid; gap: 10px; margin-top: 10px;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, .9fr) minmax(0, 1fr); }
+table.perf { width: 100%; border-collapse: collapse; font-size: 12px; }
+table.perf th { text-align: right; color: var(--muted); font-weight: 700;
+  font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+  padding: 4px 8px 7px; border-bottom: 1px solid var(--hairline); }
+table.perf th:first-child { text-align: left; }
+table.perf td { padding: 8px; border-bottom: 1px solid var(--hairline);
+  text-align: right; font-variant-numeric: tabular-nums; }
+table.perf tr:last-child td { border-bottom: none; }
+table.perf td:first-child { text-align: left; font-weight: 650; }
+table.perf tr:hover td { background: var(--raised); }
+.srcdot { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  margin-right: 7px; }
+.cfoot { border-top: 1px solid var(--hairline); padding: 9px 16px;
+  font-size: 11.5px; font-weight: 650; text-align: center; }
+.cfoot a { cursor: pointer; }
+.donutwrap { display: flex; align-items: center; gap: 14px; padding: 6px 0; }
+.donutwrap .center { position: absolute; inset: 0; display: flex;
+  flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; }
+.donutwrap .center b { font-size: 22px; font-weight: 750; display: block; }
+.donutwrap .center i { font-style: normal; font-size: 10.5px; color: var(--muted); }
+.dlegend { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.dlegend .row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.dlegend .row b { margin-left: auto; }
+.dlegend .row i { font-style: normal; color: var(--muted); font-size: 11px;
+  width: 42px; text-align: right; }
+.formrow { display: grid; grid-template-columns: minmax(90px, 1.2fr) 44px
+  minmax(60px, 1fr) 40px; align-items: center; gap: 10px; padding: 6.5px 0;
+  border-bottom: 1px solid var(--hairline); font-size: 12px; }
+.formrow:last-child { border-bottom: none; }
+.formrow .fl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.formrow .cnt { text-align: right; font-variant-numeric: tabular-nums;
+  font-weight: 650; }
+.formrow .track { height: 8px; background: var(--raised); border-radius: 4px;
+  overflow: hidden; }
+.formrow .bar { height: 100%; border-radius: 4px; }
+.formrow .pctv { color: var(--muted); font-size: 11px; text-align: right; }
+.scrollbox { max-height: 208px; overflow-y: auto; padding-right: 4px; }
+.scrollbox::-webkit-scrollbar { width: 6px; }
+.scrollbox::-webkit-scrollbar-track { background: transparent; }
+.scrollbox::-webkit-scrollbar-thumb { background: var(--raised); border-radius: 3px; }
+
+/* agents & teams */
+.teamgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px; margin-top: 10px; }
+table.mini { width: 100%; border-collapse: collapse; font-size: 12px; }
+table.mini th { text-align: right; color: var(--muted); font-weight: 700;
+  font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+  padding: 3px 8px 6px; border-bottom: 1px solid var(--hairline); }
+table.mini th:first-child { text-align: left; }
+table.mini td { padding: 5.5px 8px; border-bottom: 1px solid var(--hairline);
+  text-align: right; font-variant-numeric: tabular-nums; }
+table.mini td:first-child { text-align: left; }
+table.mini tr:hover td { background: var(--raised); }
+table.mini tr:last-child td { border-bottom: none; }
+.stdot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+.stdot.ok { background: var(--good); } .stdot.warn { background: var(--warn); }
+.stdot.crit { background: var(--crit); }
+
+.footnote { display: flex; align-items: center; gap: 8px; margin-top: 14px;
+  background: var(--surface); border: 1px solid var(--hairline);
+  border-radius: 10px; padding: 9px 14px; font-size: 11.5px;
+  color: var(--muted); }
+.empty { color: var(--muted); font-size: 12px; padding: 22px 0 16px;
+  text-align: center; }
+
+/* tooltip */
+#tip { position: fixed; z-index: 50; pointer-events: none; display: none;
+  background: var(--raised); border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(0,0,0,.5); padding: 8px 11px; font-size: 12px;
+  max-width: 280px; }
+#tip .t { color: var(--muted); font-size: 10.5px; letter-spacing: .07em;
+  text-transform: uppercase; margin-bottom: 4px; }
+#tip .row { display: flex; align-items: center; gap: 7px; margin-top: 2px; }
+#tip .k { width: 12px; height: 3px; border-radius: 2px; }
+#tip .v { font-weight: 700; font-variant-numeric: tabular-nums; }
+#tip .n { color: var(--muted); }
+
+/* responsive */
+@media (max-width: 1400px) { .charts { grid-template-columns: 1fr; }
+  .botgrid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 1100px) { .midgrid { grid-template-columns: 1fr; }
+  .insights { grid-template-columns: 1fr; }
+  .botgrid, .teamgrid { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .app { grid-template-columns: 1fr; }
+  .side { position: static; height: auto; flex-direction: row;
+    flex-wrap: wrap; align-items: center; }
+  .nav, .healthbox { display: none; } .side-sec { margin: 0 0 0 auto; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="side">
+    <div class="brandrow">
+      <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
+        <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg></div>
+      <div><h1>Lead Ops Intelligence</h1><div class="sub">Executive Command Center</div></div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-sec">
+      <span class="micro">Theme switcher</span>
+      <div class="swatches" id="swatches"></div>
+    </div>
+    <div class="healthbox" id="healthbox">
+      <span class="micro">Lead ops health</span>
+      <div class="gauge" id="gauge"></div>
+      <div class="hdelta" id="hdelta"></div>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN ================= -->
+  <main class="content">
+    <div class="filterbar" id="filterbar"></div>
+    <div id="app"></div>
+    <div class="footnote" id="footnote"></div>
+  </main>
+</div>
+<div id="tip"></div>
+
+<script src="data.js"></script>
+<script>
+"use strict";
+/* The whole app is deferred behind __LEADOPS_MAIN(); the unlock gate at the
+   bottom of this file decrypts window.DASH_ENC (data.js is encrypted at
+   rest) and then boots. Plaintext/sample data boots straight through. */
+window.__LEADOPS_MAIN = function () {
+/* ============================================================
+   CONFIG — alert thresholds & behavior. Tune freely.
+   ============================================================ */
+const THRESHOLDS = {
+  staleFeedWarnHrs: 12, staleFeedCritHrs: 24,
+  touchPctWarn: 70, medMinsWarn: 60, dupUntouchedWarn: 30,
+  dupSpikeFactor: 1.5,
+  untouchedAgeAlertHrs: 4,  // BUSINESS hours (see BUSINESS_HOURS below)
+  minStoreVolume: 15,
+  trendDays: 14,          // window for the time-series charts
+};
+
+/* Acknowledged conditions — still shown in Alerts & Risks (as "Known") but
+   excluded from the health score and the Needs Attention card.
+   Garrett 2026-07-10: Toronto stays; understaffed and known, we own them. */
+const ACKNOWLEDGED = {
+  "coverage:914": "understaffed — known & accepted",
+  "feed:leadcertain": "paused on LeadCertain's side while they finish a project — will resume (Garrett, Jul 2026)",
+};
+
+/* ============================================================
+   ICONS — tiny inline SVG paths (stroke-based, currentColor)
+   ============================================================ */
+const ICON = {
+  user: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  repeat: 'M17 1l4 4-4 4 M21 5H9a4 4 0 0 0-4 4v2 M7 23l-4-4 4-4 M3 19h12a4 4 0 0 0 4-4v-2',
+  cal: 'M3 5h18v16H3z M3 9h18 M8 3v4 M16 3v4',
+  headset: 'M4 13a8 8 0 0 1 16 0 M4 13v4a2 2 0 0 0 2 2h1v-6H6 M20 13v4a2 2 0 0 1-2 2h-1v-6h1',
+  clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M12 7v5l3 3',
+  bell: 'M18 8a6 6 0 0 0-12 0c0 7-3 8-3 8h18s-3-1-3-8 M10 21a2 2 0 0 0 4 0',
+  shield: 'M12 22s8-3 8-10V5l-8-3-8 3v7c0 7 8 10 8 10z',
+  phone: 'M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.4 2.1L8 10a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2z',
+  grid: 'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',
+  trend: 'M23 6l-9.5 9.5-5-5L1 18 M17 6h6v6',
+  gaugeI: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M12 2a10 10 0 0 0-7 17 M19 19A10 10 0 0 0 12 2 M12 9V5',
+  bolt: 'M13 2L3 14h8l-1 8 11-13h-8l0-7z',
+  target: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10z M12 13a1 1 0 1 0 0-2',
+  layers: 'M12 2L2 7l10 5 10-5-10-5z M2 12l10 5 10-5 M2 17l10 5 10-5',
+  users: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M23 21v-2a4 4 0 0 0-3-3.9 M16 3.1a4 4 0 0 1 0 7.8',
+  alert: 'M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z M12 9v4 M12 17h0',
+  trophy: 'M6 9a6 6 0 0 0 12 0V3H6v6z M6 4H2v2a4 4 0 0 0 4 4 M18 4h4v2a4 4 0 0 1-4 4 M12 15v4 M8 21h8',
+  star: 'M12 2l3 6.3 7 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 7-1L12 2z',
+  refresh: 'M23 4v6h-6 M1 20v-6h6 M3.5 9a9 9 0 0 1 14.9-3.4L23 10 M1 14l4.6 4.4A9 9 0 0 0 20.5 15',
+  info: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 16v-4 M12 8h0',
+};
+function icon(name, color, size) {
+  const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  s.setAttribute("viewBox", "0 0 24 24"); s.setAttribute("fill", "none");
+  s.setAttribute("stroke", color || "currentColor");
+  s.setAttribute("stroke-width", "2"); s.setAttribute("stroke-linecap", "round");
+  s.setAttribute("stroke-linejoin", "round");
+  if (size) { s.style.width = size + "px"; s.style.height = size + "px"; }
+  const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  p.setAttribute("d", ICON[name]); s.appendChild(p); return s;
+}
+
+/* ============================================================
+   THEMES — swatch buttons in the sidebar; persisted
+   ============================================================ */
+const THEMES = [
+  { id: "dracula", label: "Dracula", dot: "#BD93F9" },
+  { id: "command", label: "Blk/Green", dot: "#6CC14C" },
+  { id: "industrial", label: "Industrial", dot: "#A5ABB3" },
+];
+const swBox = document.getElementById("swatches");
+THEMES.forEach(t => {
+  const b = document.createElement("button"); b.className = "swatch";
+  b.dataset.t = t.id;
+  const r = document.createElement("span"); r.className = "ring";
+  r.style.background = t.dot; b.appendChild(r);
+  const s = document.createElement("span"); s.textContent = t.label;
+  b.appendChild(s); swBox.appendChild(b);
+  b.addEventListener("click", () => setTheme(t.id));
+});
+function setTheme(t, save = true) {
+  document.documentElement.setAttribute("data-theme", t);
+  [...swBox.children].forEach(b => b.classList.toggle("on", b.dataset.t === t));
+  if (save) try { localStorage.setItem("leadops-theme", t); } catch (e) {}
+  if (window.__booted) render();          // charts re-read CSS variables
+}
+setTheme((() => { try { return localStorage.getItem("leadops-theme") || "dracula"; }
+  catch (e) { return "dracula"; } })(), false);
+
+/* ============================================================
+   DATA — window.DASH from data.js, or a deterministic sample so
+   the file works standalone. Record shapes (pull_data.py):
+     andersen:    {n,d,g,r,f,s,ts,m,by,ap,rs,src}
+     avoca:       {n,d,g,ct,rs,bs,lr}
+     leadcertain: {n,d,g,t,rs,mk,src}
+   d = "YYYY-MM-DD HH:MM" in ACCOUNT TZ (ET); date part IS the ET day.
+   ============================================================ */
+function sampleData() {
+  let seed = 42; const rnd = () => (seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
+  const pick = (arr, w) => { let r = rnd() * w.reduce((a, b) => a + b, 0);
+    for (let i = 0; i < arr.length; i++) { r -= w[i]; if (r <= 0) return arr[i]; }
+    return arr[0]; };
+  const days = []; const now = new Date();
+  for (let i = 29; i >= 0; i--)
+    days.push(new Date(now - i * 86400e3).toISOString().slice(0, 10));
+  const A = [], AV = [], LC = [];
+  const stores = ["930", "535", "800", "576", "890", "867", "790", "868", "791", "534"];
+  const agents = ["A. Nowlin", "L. Tipton", "T. Douglas", "S. Donoso", "E. Breedlove"];
+  const forms = ["Consultation Request", "Online Scheduling-Action Required",
+    "Warm HandOff", "Incomplete Online Scheduling", "Online Scheduling"];
+  days.forEach((day, di) => {
+    const n = 55 + Math.round(rnd() * 60) + (di % 7 >= 5 ? -25 : 0);
+    for (let i = 0; i < n; i++) {
+      const r = pick(["Success", "Duplicate", "Other"], [61, 37, 2]);
+      const booked = r === "Success" && rnd() < 0.16;
+      const ts = pick(["Touched", "Appt Set", "Untouched", ""],
+        r === "Duplicate" ? [40, 8, 38, 14] : [62, 14, 12, 12]);
+      A.push({ n: "Sample Lead", d: `${day} ${String(7 + (i % 13)).padStart(2, "0")}:1${i % 6}`,
+        g: booked ? "✅ Booked" : "📞 To Work", r,
+        f: pick(forms, [55, 12, 8, 3, 3]), s: pick(stores, [23, 15, 9, 8, 8, 7, 6, 6, 5, 4]),
+        ts, m: ts === "Touched" || ts === "Appt Set"
+          ? String(Math.round(Math.pow(rnd(), 2.6) * 300)) : undefined,
+        by: ts === "Touched" || ts === "Appt Set" ? pick(agents, [4, 4, 3, 3, 2]) : undefined });
+    }
+    for (let i = 0, c = 2 + Math.round(rnd() * 5); i < c; i++)
+      AV.push({ n: "Sample Call", d: `${day} 1${i % 10}:2${i % 6}`, g: "Completed",
+        ct: pick(["Call Summary", "Booking Failed", "Booked", "Cancellation"], [10, 5, 3, 1]),
+        lr: pick(["No Lead", "Lead Created", "Duplicate Lead"], [10, 7, 2]),
+        bs: pick(["", "Appointment booked", "Slot unavailable", "Not attempted"], [10, 3, 2, 3]) });
+    for (let i = 0, c = 3 + Math.round(rnd() * 12); i < c; i++)
+      LC.push({ n: "Sample Appt", d: `${day} 0${1 + (i % 9)}:3${i % 6}`, g: "✅ Booked Appointments",
+        t: pick(["New Appointment", "Call to Book", "Cancelled", "Rescheduled"], [17, 2, 1, 1]),
+        mk: pick(["ATL", "NJ", "CIN", "SB", "LI", "IND", "NSH", "KNX", "CHT"], [9, 8, 6, 5, 4, 3, 3, 3, 1]) });
+  });
+  return { pulled_at: null, days_kept: 30, boards: {
+    andersen: { count: A.length, newest: A[A.length - 1].d, items: A },
+    avoca: { count: AV.length, newest: AV[AV.length - 1].d, items: AV },
+    leadcertain: { count: LC.length, newest: LC[LC.length - 1].d, items: LC } } };
+}
+const LIVE = !!(window.DASH && window.DASH.boards && window.DASH.boards.andersen);
+const D = LIVE ? window.DASH : sampleData();
+const A  = (D.boards.andersen    || {}).items || [];
+const AV = (D.boards.avoca       || {}).items || [];
+const LC = (D.boards.leadcertain || {}).items || [];
+
+/* ============================================================
+   TIME — monday date text renders in the ACCOUNT TZ (ET); the
+   date part already IS the ET day. Machines here run ET.
+   ============================================================ */
+const etDay = d => d ? d.slice(0, 10) : null;
+const dayFmt = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York",
+  year: "numeric", month: "2-digit", day: "2-digit" });
+function lastDays(n, offset = 0) {
+  const out = [];
+  for (let i = n + offset - 1; i >= offset; i--)
+    out.push(dayFmt.format(new Date(Date.now() - i * 86400e3)));
+  return out;
+}
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const shortDay = s => { const [, m, dd] = s.split("-");
+  return MONTHS[+m - 1] + " " + (+dd); };
+
+/* custom date range: inclusive day-string lists (ET days, like lastDays) */
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-` +
+                 `${String(d.getDate()).padStart(2, "0")}`;
+function customDays(from, to) {
+  if (!DATE_RE.test(from || "") || !DATE_RE.test(to || "")) return lastDays(7);
+  const a = from <= to ? from : to, b = from <= to ? to : from;
+  const d = new Date(+a.slice(0, 4), +a.slice(5, 7) - 1, +a.slice(8, 10));
+  const out = [];
+  for (let i = 0; i < 92; i++) {           // sanity cap; data holds 30 days
+    const s = iso(d);
+    out.push(s);
+    if (s === b) break;
+    d.setDate(d.getDate() + 1);
+  }
+  return out;
+}
+function customPrev(from, to) {
+  const days = customDays(from, to);
+  const first = days[0];
+  const d = new Date(+first.slice(0, 4), +first.slice(5, 7) - 1,
+                     +first.slice(8, 10));
+  const out = [];
+  for (let i = days.length; i >= 1; i--) {
+    const p = new Date(d); p.setDate(d.getDate() - i);
+    out.push(iso(p));
+  }
+  return out;
+}
+
+/* ============================================================
+   FILTERS — persisted; stale persisted values fall back to all
+   ============================================================ */
+const RANGES = [
+  { id: "today", label: "Today", days: () => lastDays(1), prev: () => lastDays(1, 1),
+    prevLabel: "yesterday" },
+  { id: "yday", label: "Yesterday", days: () => lastDays(1, 1), prev: () => lastDays(1, 2),
+    prevLabel: "the prior day" },
+  { id: "7d", label: "Last 7 days", days: () => lastDays(7), prev: () => lastDays(7, 7),
+    prevLabel: "the prior 7 days" },
+  { id: "all", label: "Last 30 days", days: () => null, prev: () => null,
+    prevLabel: "" },
+  { id: "custom", label: "Custom range",
+    days: () => customDays(FILT.from, FILT.to),
+    prev: () => customPrev(FILT.from, FILT.to),
+    prevLabel: "the prior period of equal length" },
+];
+const FILT = Object.assign(
+  { range: "today", source: "all", market: "all", agent: "all", lsrc: "all" },
+  (() => { try { return JSON.parse(localStorage.getItem("leadops-filters") || "{}"); }
+    catch (e) { return {}; } })());
+function saveFilters() {
+  try { localStorage.setItem("leadops-filters", JSON.stringify(FILT)); } catch (e) {}
+}
+const rangeOf = () => RANGES.find(r => r.id === FILT.range) || RANGES[0];
+
+/* official market names (Garrett, 2026-07-10) — shown as "Name (number)" */
+const STORE_NAMES = {
+  930: "Atlanta, GA",
+  535: "New Jersey-New York Metro",
+  800: "Long Island, NY",
+  576: "Cincinnati-Dayton OH",
+  867: "Indianapolis, IN",
+  790: "Knoxville, TN",
+  890: "San Francisco, CA",
+  868: "South Bend, IN",
+  534: "Westchester, NY",
+  791: "Nashville, TN",
+  792: "Chattanooga, TN",
+  914: "Toronto, Ontario",
+};
+const storeLabel = s => STORE_NAMES[s] ? `${STORE_NAMES[s]} (${s})` : String(s);
+const resKey = r => r.r === "Success" ? "Success" : r.r === "Duplicate" ? "Duplicate" : "Other";
+const isTouched = r => r.ts === "Touched" || r.ts === "Appt Set";
+const rawMinsOf = r => (isTouched(r) && r.m != null && r.m !== "") ? +r.m : null;
+
+/* ---- business-hours clock (Garrett's working schedule, ET) ----
+   Waiting time outside these windows does NOT count against the team:
+   a lead arriving 11pm touched 8:05am = 5 minutes, not 9 hours.
+   0=Sun … 6=Sat, [open, close] in minutes from midnight. Edit freely. */
+const BUSINESS_HOURS = {
+  0: [540, 1200],                    /* Sun 9:00a – 8:00p  */
+  1: [480, 1350], 2: [480, 1350],    /* Mon–Fri 8:00a – 10:30p */
+  3: [480, 1350], 4: [480, 1350], 5: [480, 1350],
+  6: [540, 1200],                    /* Sat 9:00a – 8:00p  */
+};
+function businessMinutes(start, end) {
+  if (!(start instanceof Date) || !(end instanceof Date) || end <= start) return 0;
+  let total = 0;
+  const d = new Date(start); d.setHours(0, 0, 0, 0);
+  while (d < end) {
+    const [o, c] = BUSINESS_HOURS[d.getDay()];
+    const open = +d + o * 60000, close = +d + c * 60000;
+    total += Math.max(0, Math.min(+end, close) - Math.max(+start, open));
+    d.setDate(d.getDate() + 1);
+  }
+  return Math.round(total / 60000);
+}
+/* minutes-to-touch on the business clock — this is what every metric,
+   chart, table and alert on the page uses. Raw wall-clock stays on the
+   monday board (mins_to_touch); memoized per record per page load. */
+const minsOf = r => {
+  if (r._bm !== undefined) return r._bm;
+  const raw = rawMinsOf(r);
+  if (raw == null) return (r._bm = null);
+  const start = new Date(r.d.replace(" ", "T"));   // ET wall = machine local
+  return (r._bm = businessMinutes(start, new Date(+start + raw * 60000)));
+};
+const isBookedA = r => (r.g || "").includes("Booked") || r.ts === "Appt Set";
+/* guard stale persisted filter values against current data */
+if (FILT.market !== "all" && !A.some(r => String(r.s) === FILT.market)) FILT.market = "all";
+if (FILT.agent !== "all" && !A.some(r => r.by === FILT.agent)) FILT.agent = "all";
+if (FILT.lsrc !== "all" && !A.some(r => r.src === FILT.lsrc)) FILT.lsrc = "all";
+if (!DATE_RE.test(FILT.from || "")) FILT.from = lastDays(7)[0];
+if (!DATE_RE.test(FILT.to || "")) FILT.to = lastDays(1)[0];
+
+function aMatch(r, { agentToo = false } = {}) {
+  if (FILT.source !== "all" && FILT.source !== "andersen") return false;
+  if (FILT.market !== "all" && String(r.s) !== FILT.market) return false;
+  if (FILT.lsrc !== "all" && (r.src || "") !== FILT.lsrc) return false;
+  if (agentToo && FILT.agent !== "all" && (r.by || "") !== FILT.agent) return false;
+  return true;
+}
+const avMatch = () => FILT.source === "all" || FILT.source === "avoca";
+const lcMatch = () => FILT.source === "all" || FILT.source === "leadcertain";
+const inRange = (items, days) => days == null ? items
+  : items.filter(r => days.includes(etDay(r.d)));
+
+/* ============================================================
+   Utils
+   ============================================================ */
+const sum = a => a.reduce((x, y) => x + y, 0);
+const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y);
+  const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const fmt = n => n == null ? "—" : n.toLocaleString("en-US");
+const pct = (n, d) => d ? Math.round(100 * n / d) + "%" : "—";
+const counter = (items, key) => { const m = new Map();
+  for (const r of items) { const k = key(r); if (k == null) continue;
+    m.set(k, (m.get(k) || 0) + 1); } return m; };
+function el(tag, attrs, parent) {
+  const e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e); return e;
+}
+function h(tag, cls, parent, text) {
+  const e = document.createElement(tag); if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  if (parent) parent.appendChild(e); return e;
+}
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function niceMax(v) { if (!isFinite(v) || v <= 4) return 4;
+  const p = Math.pow(10, Math.floor(Math.log10(v)));
+  for (const m of [1, 2, 4, 5, 10]) if (m * p >= v) return m * p; return 10 * p; }
+/* an empty previous-period slice means "no comparison", not zero */
+const hasPrev = prev => prev != null && prev.length > 0;
+function pctDelta(cur, prev) {
+  if (typeof prev !== "number" || prev === 0 || typeof cur !== "number") return null;
+  return Math.round(100 * (cur - prev) / prev);
+}
+
+/* ============================================================
+   Tooltip
+   ============================================================ */
+const tip = document.getElementById("tip");
+function showTip(evt, title, rows) {
+  tip.textContent = "";
+  h("div", "t", tip, title);
+  for (const r of rows) {
+    const row = h("div", "row", tip);
+    h("span", "k", row).style.background = r.color || "transparent";
+    h("span", "v", row, r.value);
+    h("span", "n", row, r.name);
+  }
+  tip.style.display = "block";
+  const pad = 14, w = tip.offsetWidth, hh = tip.offsetHeight;
+  let x = evt.clientX + pad, y = evt.clientY + pad;
+  if (x + w > innerWidth - 8) x = evt.clientX - w - pad;
+  if (y + hh > innerHeight - 8) y = evt.clientY - hh - pad;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+const hideTip = () => { tip.style.display = "none"; };
+
+/* ============================================================
+   CHARTS — gradient area lines (crosshair tooltip), sparkline,
+   donut. All colors read from CSS variables at render time.
+   ============================================================ */
+let GRAD = 0;
+function lineArea(host, days, series, { height = 210, y2 = null } = {}) {
+  /* series: [{label,color,values,dashed,area,axis:"y"|"y2",fmtV}] */
+  const W = 560, H = height, L = 38, R = y2 ? 40 : 14, T = 14, B = 22;
+  const anyData = series.some(s => s.values.some(v => v != null && v > 0));
+  if (!anyData) { h("div", "empty", host, "No data in window"); return; }
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}` }, null);
+  const defs = el("defs", {}, svg);
+  const maxOf = axis => niceMax(Math.max(...series.filter(s => (s.axis || "y") === axis)
+    .flatMap(s => s.values.map(v => v || 0)), 0));
+  const ymax = maxOf("y"), y2max = y2 ? maxOf("y2") : 0;
+  const px = i => L + (W - L - R) * (days.length === 1 ? 0.5 : i / (days.length - 1));
+  const py = (v, axis) => T + (H - T - B) *
+    (1 - v / ((axis === "y2") ? y2max : ymax));
+  for (let i = 0; i <= 4; i++) {
+    const y = T + (H - T - B) * i / 4;
+    el("line", { x1: L, x2: W - R, y1: y, y2: y,
+      stroke: i === 4 ? css("--border") : css("--hairline"), "stroke-width": 1 }, svg);
+    el("text", { x: L - 6, y: y + 3.5, "text-anchor": "end", "font-size": 9.5,
+      fill: css("--muted"), style: "font-variant-numeric:tabular-nums" }, svg)
+      .textContent = Math.round(ymax * (4 - i) / 4).toLocaleString();
+    if (y2) el("text", { x: W - R + 6, y: y + 3.5, "font-size": 9.5,
+      fill: css("--muted") }, svg)
+      .textContent = (y2.fmt || (v => v))(Math.round(y2max * (4 - i) / 4));
+  }
+  const tickEvery = Math.ceil(days.length / 8);
+  days.forEach((d, i) => { if (i % tickEvery === 0)
+    el("text", { x: px(i), y: H - 7, "text-anchor": "middle", "font-size": 9.5,
+      fill: css("--muted") }, svg).textContent = shortDay(d); });
+  series.forEach(s => {
+    const pts = days.map((d, i) =>
+      s.values[i] == null ? null : [px(i), py(s.values[i], s.axis || "y")]);
+    let path = "", started = false;
+    pts.forEach(p => { if (!p) { started = false; return; }
+      path += (started ? "L" : "M") + p[0].toFixed(1) + "," + p[1].toFixed(1);
+      started = true; });
+    if (!path) return;
+    const solid = pts.filter(Boolean);
+    if (s.area && solid.length > 1) {
+      const gid = "g" + (++GRAD);
+      const grad = el("linearGradient", { id: gid, x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+      el("stop", { offset: "0%", "stop-color": s.color, "stop-opacity": .28 }, grad);
+      el("stop", { offset: "100%", "stop-color": s.color, "stop-opacity": 0 }, grad);
+      el("path", { d: path + `L${solid[solid.length - 1][0]},${py(0, s.axis || "y")}` +
+        `L${solid[0][0]},${py(0, s.axis || "y")} Z`, fill: `url(#${gid})` }, svg);
+    }
+    el("path", { d: path, fill: "none", stroke: s.color, "stroke-width": 2,
+      "stroke-linejoin": "round", "stroke-linecap": "round",
+      ...(s.dashed ? { "stroke-dasharray": "5 4" } : {}) }, svg);
+    const li = pts.map((p, i) => p ? i : -1).filter(i => i >= 0).pop();
+    if (li != null && li >= 0)
+      el("circle", { cx: pts[li][0], cy: pts[li][1], r: 3.5, fill: s.color,
+        stroke: css("--surface"), "stroke-width": 2 }, svg);
+  });
+  /* crosshair + all-series tooltip */
+  const cross = el("line", { y1: T, y2: H - B, stroke: css("--muted"),
+    "stroke-width": 1, opacity: 0 }, svg);
+  const hit = el("rect", { x: 0, y: 0, width: W, height: H, fill: "transparent" }, svg);
+  hit.addEventListener("pointermove", e => {
+    const box = svg.getBoundingClientRect();
+    const xu = (e.clientX - box.left) / box.width * W;
+    const i = Math.max(0, Math.min(days.length - 1,
+      Math.round((xu - L) / ((W - L - R) / (days.length - 1 || 1)))));
+    cross.setAttribute("x1", px(i)); cross.setAttribute("x2", px(i));
+    cross.setAttribute("opacity", .45);
+    showTip(e, shortDay(days[i]), series.map(s => ({ color: s.color, name: s.label,
+      value: s.values[i] == null ? "—" : (s.fmtV || fmt)(s.values[i]) })));
+  });
+  hit.addEventListener("pointerleave", () => { cross.setAttribute("opacity", 0); hideTip(); });
+  host.appendChild(svg);
+}
+
+function sparkline(host, values, color, { bars = false } = {}) {
+  const W = 110, H = 26, P = 2;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, class: "spark" }, null);
+  svg.style.width = "100%"; svg.style.height = "26px";
+  const vs = values.map(v => v || 0);
+  const max = Math.max(...vs, 1);
+  if (bars) {
+    const bw = Math.max((W - 2 * P) / vs.length - 2, 2);
+    vs.forEach((v, i) => el("rect", {
+      x: P + i * (W - 2 * P) / vs.length, y: H - P - (H - 2 * P) * v / max,
+      width: bw, height: Math.max((H - 2 * P) * v / max, 1), rx: 1,
+      fill: color, opacity: .85 }, svg));
+  } else {
+    const px = i => P + (W - 2 * P) * (vs.length === 1 ? .5 : i / (vs.length - 1));
+    const py = v => H - P - (H - 2 * P) * v / max;
+    let d = "";
+    vs.forEach((v, i) => { d += (i ? "L" : "M") + px(i).toFixed(1) + "," + py(v).toFixed(1); });
+    const gid = "g" + (++GRAD);
+    const defs = el("defs", {}, svg);
+    const grad = el("linearGradient", { id: gid, x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+    el("stop", { offset: "0%", "stop-color": color, "stop-opacity": .3 }, grad);
+    el("stop", { offset: "100%", "stop-color": color, "stop-opacity": 0 }, grad);
+    el("path", { d: d + `L${px(vs.length - 1)},${H - P} L${px(0)},${H - P} Z`,
+      fill: `url(#${gid})` }, svg);
+    el("path", { d, fill: "none", stroke: color, "stroke-width": 1.6 }, svg);
+  }
+  host.appendChild(svg);
+}
+
+function donut(host, segments, centerTop, centerBottom) {
+  /* segments: [{label,value,color}] */
+  const total = sum(segments.map(s => s.value));
+  const wrap = h("div", "donutwrap", host);
+  const dbox = h("div", null, wrap);
+  dbox.style.position = "relative"; dbox.style.width = "150px";
+  dbox.style.height = "150px"; dbox.style.flex = "none";
+  const svg = el("svg", { viewBox: "0 0 42 42" }, null);
+  svg.style.width = "150px"; svg.style.height = "150px";
+  const R2 = 15.9159; const CIRC = 100;
+  el("circle", { cx: 21, cy: 21, r: R2, fill: "none",
+    stroke: css("--raised"), "stroke-width": 6 }, svg);
+  let off = 25; /* start at 12 o'clock */
+  segments.forEach(s => {
+    if (!s.value) return;
+    const frac = 100 * s.value / total;
+    const c = el("circle", { cx: 21, cy: 21, r: R2, fill: "none",
+      stroke: s.color, "stroke-width": 6, "stroke-linecap": "butt",
+      "stroke-dasharray": `${Math.max(frac - 1, .5)} ${CIRC - Math.max(frac - 1, .5)}`,
+      "stroke-dashoffset": off }, svg);
+    off -= frac;
+    c.style.cursor = "default";
+    c.addEventListener("pointermove", e => showTip(e, s.label,
+      [{ color: s.color, name: pct(s.value, total) + " of tracked", value: fmt(s.value) }]));
+    c.addEventListener("pointerleave", hideTip);
+  });
+  dbox.appendChild(svg);
+  const center = h("div", "center", dbox);
+  h("b", "num", center, centerTop);
+  h("i", null, center, centerBottom);
+  const lg = h("div", "dlegend", wrap);
+  segments.forEach(s => {
+    const row = h("div", "row", lg);
+    const dot = h("span", "srcdot", row); dot.style.background = s.color;
+    h("span", null, row, s.label);
+    h("i", "num", row, pct(s.value, total));
+    h("b", "num", row, fmt(s.value));
+  });
+  return wrap;
+}
+
+/* ============================================================
+   Per-day helpers + weekly rollup for the chart dropdowns
+   ============================================================ */
+function trendWindow() {
+  if (FILT.range === "custom") return rangeOf().days();
+  if (FILT.range === "all") {
+    const all = new Set();
+    for (const r of [...A, ...AV, ...LC]) { const d = etDay(r.d); if (d) all.add(d); }
+    const sorted = [...all].sort();
+    return sorted.length ? sorted : lastDays(THRESHOLDS.trendDays);
+  }
+  return lastDays(THRESHOLDS.trendDays);
+}
+function dailyCounts(items, days, f) {
+  const set = new Map(days.map(d => [d, 0]));
+  for (const r of items) { const d = etDay(r.d);
+    if (set.has(d) && (!f || f(r))) set.set(d, set.get(d) + 1); }
+  return days.map(d => set.get(d));
+}
+function weekly(days, values, agg) {
+  /* group by ISO-ish week (Mon start); agg: "sum" | "median-of-values" */
+  const buckets = new Map();
+  days.forEach((d, i) => {
+    const dt = new Date(d + "T12:00:00");
+    const wk = new Date(dt - ((dt.getDay() + 6) % 7) * 86400e3)
+      .toISOString().slice(0, 10);
+    if (!buckets.has(wk)) buckets.set(wk, []);
+    if (values[i] != null) buckets.get(wk).push(values[i]);
+  });
+  const ks = [...buckets.keys()].sort();
+  return { days: ks, values: ks.map(k => {
+    const v = buckets.get(k);
+    if (!v.length) return null;
+    return agg === "median" ? Math.round(median(v)) : sum(v); }) };
+}
+
+/* ============================================================
+   ALERT ENGINE — {sev:"crit"|"warn", title, detail, chip}
+   ============================================================ */
+function buildAlerts(a, aAll) {
+  const out = [];
+  const now = Date.now();
+  [["Andersen", "andersen"], ["Avoca", "avoca"], ["LeadCertain", "leadcertain"]]
+    .forEach(([name, key]) => {
+      const newest = (D.boards[key] || {}).newest; if (!newest) return;
+      const hrs = (now - new Date(newest.replace(" ", "T"))) / 3600e3;
+      if (hrs > THRESHOLDS.staleFeedCritHrs)
+        out.push({ sev: "crit", ack: ACKNOWLEDGED["feed:" + key],
+          title: `${name} feed silent`, chip: Math.round(hrs) + "h",
+          detail: "No new items — check the sync scheduled task." });
+      else if (hrs > THRESHOLDS.staleFeedWarnHrs && key === "andersen")
+        out.push({ sev: "warn", title: `${name} feed slowing`, chip: Math.round(hrs) + "h",
+          detail: "Newest item is older than expected for this volume." });
+    });
+  const untouched = a.filter(r => r.ts === "Untouched");
+  const aging = untouched.filter(r => businessMinutes(
+    new Date(r.d.replace(" ", "T")), new Date(now))
+    > THRESHOLDS.untouchedAgeAlertHrs * 60);
+  if (aging.length)
+    out.push({ sev: aging.length > 25 ? "crit" : "warn",
+      title: `${aging.length} untouched lead${aging.length > 1 ? "s" : ""} aging`,
+      chip: `>${THRESHOLDS.untouchedAgeAlertHrs}h`,
+      detail: `No agent contact after ${THRESHOLDS.untouchedAgeAlertHrs} business hours — speed-to-lead risk.` });
+  const dupTracked = a.filter(r => r.r === "Duplicate" && r.ts);
+  const dupUn = dupTracked.filter(r => r.ts === "Untouched").length;
+  if (dupTracked.length >= 10 && 100 * dupUn / dupTracked.length >= THRESHOLDS.dupUntouchedWarn)
+    out.push({ sev: "warn", title: "Duplicate re-inquiries under-worked",
+      chip: pct(dupUn, dupTracked.length),
+      detail: `${dupUn} of ${dupTracked.length} duplicate re-inquiries have no agent action.` });
+  /* duplicate spike vs trailing average — only days that HAVE data */
+  const wkDays = lastDays(7, 1).filter(d => aAll.some(r => etDay(r.d) === d));
+  const dupAvg = wkDays.length
+    ? inRange(aAll, wkDays).filter(r => r.r === "Duplicate").length / wkDays.length : 0;
+  const dupToday = inRange(aAll, lastDays(1)).filter(r => r.r === "Duplicate").length;
+  if (wkDays.length >= 3 && dupAvg >= 5 && dupToday > dupAvg * THRESHOLDS.dupSpikeFactor)
+    out.push({ sev: "warn", title: "Duplicate volume spiking", chip: `${dupToday} today`,
+      detail: `vs ${Math.round(dupAvg)}/day trailing average.` });
+  const st = new Map();
+  for (const r of a) { const s = r.s || "?";
+    if (!st.has(s)) st.set(s, { tracked: 0, touched: 0, mins: [] });
+    const o = st.get(s);
+    if (r.ts) o.tracked++;
+    if (isTouched(r)) { o.touched++; const m = minsOf(r); if (m != null) o.mins.push(m); } }
+  [...st].filter(([, o]) => o.tracked >= THRESHOLDS.minStoreVolume)
+    .forEach(([s, o]) => {
+      const tp = 100 * o.touched / o.tracked;
+      const med = o.mins.length ? median(o.mins) : null;
+      if (tp < THRESHOLDS.touchPctWarn)
+        out.push({ sev: tp < 50 ? "crit" : "warn", ack: ACKNOWLEDGED["coverage:" + s],
+          title: `${storeLabel(s)} coverage low`, chip: Math.round(tp) + "%",
+          detail: `Only ${o.touched} of ${o.tracked} tracked leads touched.` });
+      else if (med != null && med > THRESHOLDS.medMinsWarn)
+        out.push({ sev: "warn", ack: ACKNOWLEDGED["slow:" + s],
+          title: `${storeLabel(s)} touching slowly`,
+          chip: Math.round(med) + "m",
+          detail: `Median first-touch above the ${THRESHOLDS.medMinsWarn}-minute bar.` });
+    });
+  /* crit first, then warn; acknowledged conditions sink to the bottom */
+  const rank = x => x.ack ? 2 : x.sev === "crit" ? 0 : 1;
+  out.sort((x, y) => rank(x) - rank(y));
+  return out;
+}
+
+/* ============================================================
+   HEALTH SCORE — composite 0–100 from the current slice
+   ============================================================ */
+function healthScore(a, alerts) {
+  const tracked = a.filter(r => r.ts).length;
+  const un = a.filter(r => r.ts === "Untouched").length;
+  const med = median(a.map(minsOf).filter(v => v != null));
+  const live = alerts.filter(x => !x.ack);   // acknowledged ≠ unhealthy
+  let s = 100;
+  s -= live.filter(x => x.sev === "crit").length * 14;
+  s -= live.filter(x => x.sev === "warn").length * 5;
+  if (tracked) s -= Math.max(0, 100 * un / tracked - 10) * 0.6;
+  if (med != null) s -= Math.max(0, med - 10) * 0.3;
+  return Math.max(5, Math.min(100, Math.round(s)));
+}
+
+/* ============================================================
+   FILTER BAR (top) — date range, source, market, agent
+   ============================================================ */
+function renderFilterbar() {
+  const bar = document.getElementById("filterbar");
+  bar.textContent = "";
+  const mkSel = (label, key, options, extraCap) => {
+    const c = h("div", "fcol", bar);
+    h("span", "micro", c, label + (extraCap ? " · " + extraCap : ""));
+    const s = h("select", null, c);
+    options.forEach(([v, txt]) => {
+      const o = h("option", null, s, txt); o.value = v;
+      if (FILT[key] === v) o.selected = true; });
+    s.addEventListener("change", () => { FILT[key] = s.value; saveFilters(); render(); });
+  };
+  const today = lastDays(1)[0], d7 = lastDays(7);
+  mkSel("Date range", "range", [
+    ["today", "Today · " + shortDay(today)],
+    ["yday", "Yesterday · " + shortDay(lastDays(1, 1)[0])],
+    ["7d", `Last 7 days · ${shortDay(d7[0])} – ${shortDay(d7[6])}`],
+    ["all", `Last ${D.days_kept || 30} days`],
+    ["custom", FILT.range === "custom"
+      ? `Custom · ${shortDay(FILT.from)} – ${shortDay(FILT.to)}`
+      : "Custom range…"]]);
+  if (FILT.range === "custom") {
+    const c = h("div", "fcol", bar);
+    h("span", "micro", c, "From — To");
+    const wrap = h("div", "daterange", c);
+    [["from", FILT.from], ["to", FILT.to]].forEach(([key, val]) => {
+      const inp = h("input", null, wrap);
+      inp.type = "date";
+      inp.value = val;
+      inp.max = today;
+      inp.addEventListener("change", () => {
+        if (DATE_RE.test(inp.value)) {
+          FILT[key] = inp.value; saveFilters(); render();
+        }
+      });
+    });
+  }
+  mkSel("Source", "source", [["all", "All Sources"], ["andersen", "Andersen"],
+    ["avoca", "Avoca"], ["leadcertain", "LeadCertain"]]);
+  mkSel("Lead Source", "lsrc", [["all", "All Lead Sources"],
+    ...[...counter(A, r => r.src || null)].sort((x, y) => y[1] - x[1])
+      .map(([v]) => [v, v])], "Andersen leads");
+  mkSel("Market / Team", "market", [["all", "All Markets"],
+    ...[...counter(A, r => r.s || null)].sort((x, y) => y[1] - x[1])
+      .map(([s]) => [String(s), storeLabel(s)])]);
+  mkSel("Agent / Coordinator", "agent", [["all", "All"],
+    ...[...counter(A.filter(isTouched), r => r.by || null)]
+      .sort((x, y) => y[1] - x[1]).slice(0, 15)
+      .map(([by]) => [by, by.replace(/^@\w+ - /, "")])], "touch panels");
+  h("div", "grow", bar);
+  const upd = h("div", "updated", bar);
+  const updText = h("span", null, upd);
+  if (D.pulled_at) {
+    const mins = Math.max(0, Math.round(
+      (Date.now() - new Date(D.pulled_at.replace(" ", "T") + ":00Z")) / 60000));
+    updText.textContent = "Last updated " + (mins < 60 ? mins + " min ago"
+      : Math.round(mins / 60 * 10) / 10 + " h ago");
+  } else updText.textContent = "Sample data";
+  const rb = h("button", null, upd); rb.id = "refresh"; rb.title = "Reload";
+  rb.appendChild(icon("refresh", "currentColor", 15));
+  rb.addEventListener("click", () => location.reload());
+}
+
+/* ============================================================
+   SIDEBAR — nav (scroll anchors + scroll-spy) & health gauge
+   ============================================================ */
+const NAV = [
+  ["sec-overview", "Executive Overview", "grid"],
+  ["sec-trends", "Lead Trends", "trend"],
+  ["sec-perf", "Performance", "gaugeI"],
+  ["sec-speed", "Speed to Lead", "bolt"],
+  ["sec-touch", "Touch & Outcomes", "target"],
+  ["sec-forms", "Sources & Forms", "layers"],
+  ["sec-agents", "Agents & Teams", "users"],
+  ["sec-alerts", "Alerts & Risks", "alert"],
+];
+function renderNav() {
+  const nav = document.getElementById("nav");
+  nav.textContent = "";
+  NAV.forEach(([id, label, ic], i) => {
+    const a = h("a", i === 0 ? "on" : null, nav);
+    a.href = "#" + id;
+    a.appendChild(icon(ic, "currentColor", 15));
+    a.append(label);
+  });
+}
+function scrollSpy() {
+  const links = [...document.querySelectorAll("#nav a")];
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(en => { if (!en.isIntersecting) return;
+      links.forEach(l => l.classList.toggle("on",
+        l.getAttribute("href") === "#" + en.target.id)); });
+  }, { rootMargin: "-25% 0px -65% 0px" });
+  NAV.forEach(([id]) => { const n = document.getElementById(id);
+    if (n) obs.observe(n); });
+}
+function renderGauge(score, prevScore) {
+  const g = document.getElementById("gauge");
+  g.textContent = "";
+  const svg = el("svg", { viewBox: "0 0 42 42" }, null);
+  svg.style.width = "116px"; svg.style.height = "116px";
+  el("circle", { cx: 21, cy: 21, r: 15.9159, fill: "none",
+    stroke: css("--raised"), "stroke-width": 4.4 }, svg);
+  const col = score >= 80 ? css("--good") : score >= 60 ? css("--warn") : css("--crit");
+  el("circle", { cx: 21, cy: 21, r: 15.9159, fill: "none",
+    stroke: col, "stroke-width": 4.4, "stroke-linecap": "round",
+    "stroke-dasharray": `${score} ${100 - score}`, "stroke-dashoffset": 25 }, svg);
+  g.appendChild(svg);
+  const sc = h("div", "score", g);
+  h("b", "num", sc, String(score));
+  h("i", null, sc, score >= 80 ? "Good" : score >= 60 ? "Fair" : "At risk");
+  const hd = document.getElementById("hdelta");
+  hd.textContent = "";
+  if (prevScore != null) {
+    const d = score - prevScore;
+    hd.className = "hdelta " + (d > 0 ? "up" : d < 0 ? "down" : "flat");
+    hd.textContent = (d > 0 ? "↑ +" : d < 0 ? "↓ " : "· ") + d +
+      " vs " + rangeOf().prevLabel;
+  } else { hd.className = "hdelta flat"; hd.textContent = "no comparison window"; }
+}
+
+/* ============================================================
+   MAIN RENDER
+   ============================================================ */
+function render() {
+  renderFilterbar();
+  const days = rangeOf().days(), prevDays = rangeOf().prev();
+  const aBase = A.filter(r => aMatch(r));
+  const a = inRange(aBase, days);
+  const aPrevRaw = prevDays ? inRange(aBase, prevDays) : null;
+  const aPrev = hasPrev(aPrevRaw) ? aPrevRaw : null;   // empty prev ⇒ no deltas
+  const av = avMatch() ? inRange(AV, days) : [];
+  const avPrev = avMatch() && prevDays ? inRange(AV, prevDays) : null;
+  const lc = lcMatch() ? inRange(LC, days) : [];
+  const lcPrev = lcMatch() && prevDays ? inRange(LC, prevDays) : null;
+  const aT = inRange(A.filter(r => aMatch(r, { agentToo: true })), days);
+  const tDays = trendWindow();
+  const aTrend = A.filter(r => aMatch(r));
+  const C1 = css("--c1"), C2 = css("--c2"), C3 = css("--c3"), C4 = css("--c4"),
+        C5 = css("--c5"), C6 = css("--c6");
+  const agentName = FILT.agent === "all" ? null : FILT.agent.replace(/^@\w+ - /, "");
+
+  const alerts = buildAlerts(a, aBase);
+  const score = healthScore(a, alerts);
+  const prevScore = aPrev ? healthScore(aPrev, buildAlerts(aPrev, aBase)
+    .filter(x => !x.title.includes("feed"))) : null;
+  renderGauge(score, prevScore);
+
+  const app = document.getElementById("app");
+  app.textContent = "";
+
+  /* ---------- KPI strip ---------- */
+  const cnt = (arr, f) => arr.filter(f).length;
+  const kwrap = h("div", "kpis", app); kwrap.id = "sec-overview";
+  const kpi = (label, iconName, color, value, cur, prev, upGood, sparkVals, bars) => {
+    const t = h("div", "kpi", kwrap);
+    const top = h("div", "top", t);
+    const ic = h("div", "ico", top);
+    ic.style.background = color + "22"; ic.appendChild(icon(iconName, color, 14));
+    h("div", "lbl", top, label);
+    h("div", "v num", t, value);
+    const d = h("div", "d", t);
+    const pd = pctDelta(cur, prev);
+    if (pd != null && pd !== 0) {
+      d.className = "d " + (upGood == null ? "flat" : (pd > 0) === upGood ? "up" : "down");
+      d.textContent = `${pd > 0 ? "▲" : "▼"} ${Math.abs(pd)}% vs ${rangeOf().prevLabel}`;
+    }
+    if (sparkVals) { const sp = h("div", "spark", t);
+      sparkline(sp, sparkVals, color, { bars }); }
+  };
+  const sD = lastDays(THRESHOLDS.trendDays);
+  const newNow = cnt(a, r => r.r === "Success");
+  kpi("New Leads", "user", C1, fmt(newNow), newNow,
+    aPrev && cnt(aPrev, r => r.r === "Success"), true,
+    dailyCounts(aTrend, sD, r => r.r === "Success"));
+  const dupNow = cnt(a, r => r.r === "Duplicate");
+  kpi("Duplicate Re-inquiries", "repeat", C3, fmt(dupNow), dupNow,
+    aPrev && cnt(aPrev, r => r.r === "Duplicate"), null,
+    dailyCounts(aTrend, sD, r => r.r === "Duplicate"));
+  const boaNow = cnt(a, r => (r.g || "").includes("Booked"));
+  kpi("Booked on Arrival", "cal", C5, fmt(boaNow), boaNow,
+    aPrev && cnt(aPrev, r => (r.g || "").includes("Booked")), true,
+    dailyCounts(aTrend, sD, r => (r.g || "").includes("Booked")));
+  const asNow = cnt(a, r => r.ts === "Appt Set");
+  kpi("Appts Set by Agents", "headset", C4, fmt(asNow), asNow,
+    aPrev && cnt(aPrev, r => r.ts === "Appt Set"), true,
+    dailyCounts(aTrend, sD, r => r.ts === "Appt Set"));
+  const medNow = median(a.map(minsOf).filter(v => v != null));
+  const medPrev = aPrev ? median(aPrev.map(minsOf).filter(v => v != null)) : null;
+  kpi("Median Mins to Touch", "clock", C2,
+    medNow == null ? "—" : fmt(Math.round(medNow)),
+    medNow == null ? null : Math.round(medNow), medPrev == null ? null : Math.round(medPrev),
+    false, sD.map(d => { const v = inRange(aTrend, [d]).map(minsOf)
+      .filter(x => x != null); return v.length ? Math.round(median(v)) : 0; }));
+  const unNow = cnt(a, r => r.ts === "Untouched");
+  kpi("Untouched Leads", "bell", C3, fmt(unNow), unNow,
+    aPrev && cnt(aPrev, r => r.ts === "Untouched"), false,
+    dailyCounts(aTrend, sD, r => r.ts === "Untouched"));
+  const lcNow = cnt(lc, r => r.t === "New Appointment");
+  kpi("LeadCertain Appts", "shield", C1, fmt(lcNow), lcNow,
+    hasPrev(lcPrev) ? cnt(lcPrev, r => r.t === "New Appointment") : null, true,
+    lcMatch() ? dailyCounts(LC, sD, r => r.t === "New Appointment") : null);
+  kpi("Avoca Calls", "phone", C2, fmt(av.length), av.length,
+    hasPrev(avPrev) ? avPrev.length : null, true,
+    avMatch() ? dailyCounts(AV, sD) : null, true);
+
+  /* ---------- insights + alerts rail ---------- */
+  const mid = h("div", "midgrid", app);
+  const midleft = h("div", "midleft", mid);
+  const ins = h("div", "insights", midleft);
+
+  const bookedAll = cnt(a, isBookedA) + cnt(av, r => r.bs === "Appointment booked")
+    + cnt(lc, r => r.t === "New Appointment");
+  const fresh = a.filter(r => r.r !== "Duplicate" && r.ts);
+  const freshUn = fresh.filter(r => r.ts === "Untouched").length;
+  const dupTr = a.filter(r => r.r === "Duplicate" && r.ts);
+  const dupUn = dupTr.filter(r => r.ts === "Untouched").length;
+
+  const wins = [];
+  if (medNow != null && medNow <= 10)
+    wins.push(`Median time to touch is ${Math.round(medNow)} min — inside the 10-minute gold standard.`);
+  const newPd = aPrev ? pctDelta(newNow, cnt(aPrev, r => r.r === "Success")) : null;
+  if (newPd != null && newPd > 0) wins.push(`New leads are up ${newPd}% vs ${rangeOf().prevLabel}.`);
+  if (bookedAll) wins.push(`${fmt(bookedAll)} appointments on the books across all sources.`);
+  if (fresh.length && 100 * freshUn / fresh.length <= 12)
+    wins.push(`${pct(fresh.length - freshUn, fresh.length)} of fresh leads worked.`);
+  const wcard = h("div", "insight wins", ins);
+  const wh = h("div", "ihead", wcard);
+  wh.appendChild(icon("trophy", css("--good"), 16)); wh.append("Key Wins");
+  const wul = h("ul", null, wcard);
+  (wins.length ? wins.slice(0, 3) : ["Quiet so far in this view."])
+    .forEach(w => h("li", null, wul, w));
+
+  const warnsCard = h("div", "insight warns", ins);
+  const wh2 = h("div", "ihead", warnsCard);
+  wh2.appendChild(icon("alert", css("--warn"), 16)); wh2.append("Needs Attention");
+  const wul2 = h("ul", null, warnsCard);
+  const attn = [];
+  if (dupTr.length >= 10 && 100 * dupUn / dupTr.length >= THRESHOLDS.dupUntouchedWarn)
+    attn.push(`${pct(dupUn, dupTr.length)} of duplicate re-inquiries are untouched.`);
+  alerts.filter(x => !x.ack).slice(0, 3 - Math.min(attn.length, 3))
+    .forEach(x => attn.push(`${x.title} (${x.chip}).`));
+  (attn.length ? attn.slice(0, 3) : ["Nothing above thresholds right now."])
+    .forEach(t => h("li", null, wul2, t));
+
+  const take = h("div", "insight", ins);
+  const th3 = h("div", "ihead", take);
+  th3.appendChild(icon("star", css("--accent"), 16)); th3.append("Leadership Takeaway");
+  const tp1 = h("p", null, take,
+    `${fmt(newNow)} new leads and ${fmt(bookedAll)} booked appointments in this view` +
+    (medNow != null ? `; agents reach a typical lead in ${Math.round(medNow)} minutes.` : "."));
+  if (dupTr.length >= 10)
+    h("p", null, take, `Focus area: duplicate re-inquiries — ${pct(dupUn, dupTr.length)} ` +
+      `sit unworked vs ${pct(freshUn, fresh.length)} of fresh leads. These are ` +
+      `customers raising their hand a second time.`);
+
+  /* trend charts (left column, under insights) */
+  const charts = h("div", "charts", midleft); charts.id = "sec-trends";
+  const chartCard = (id, title, cap, legend, build) => {
+    const c = h("div", "card", charts); if (id) c.id = id;
+    const ch = h("div", "chead", c);
+    h("h2", null, ch, title);
+    if (cap) h("span", "cap", ch, cap);
+    const sel = h("select", null, ch);
+    ["Daily", "Weekly"].forEach(o => h("option", null, sel, o));
+    if (legend && legend.length > 1) {
+      const lg = h("div", "legend", c);
+      legend.forEach(s => { const k = h("span", "key", lg);
+        const sw = h("span", "sw" + (s.dashed ? " dash" : ""), k);
+        if (s.dashed) sw.style.color = s.color; else sw.style.background = s.color;
+        k.append(s.label); });
+    }
+    const body = h("div", "cbody", c);
+    const draw = () => { body.textContent = ""; build(body, sel.value === "Weekly"); };
+    sel.addEventListener("change", draw);
+    draw();
+  };
+  /* 1 — lead volume: new leads vs appointments set */
+  const volNew = dailyCounts(aTrend, tDays, r => r.r === "Success");
+  const volAppt = tDays.map(d =>
+    inRange(aTrend, [d]).filter(isBookedA).length
+    + (avMatch() ? inRange(AV, [d]).filter(r => r.bs === "Appointment booked").length : 0)
+    + (lcMatch() ? inRange(LC, [d]).filter(r => r.t === "New Appointment").length : 0));
+  chartCard(null, "Lead Volume Over Time", null,
+    [{ label: "New Leads", color: C1 }, { label: "Appointments Set", color: C2 }],
+    (b, wk) => {
+      let d1 = tDays, v1 = volNew, v2 = volAppt;
+      if (wk) { const w1 = weekly(tDays, volNew, "sum");
+        const w2 = weekly(tDays, volAppt, "sum");
+        d1 = w1.days; v1 = w1.values; v2 = w2.values; }
+      lineArea(b, d1, [
+        { label: "New Leads", color: C1, values: v1, area: true },
+        { label: "Appointments Set", color: C2, values: v2, area: true }]);
+    });
+  /* 2 — speed to lead vs previous period */
+  const medDaily = tDays.map(d => { const v = inRange(aTrend, [d]).map(minsOf)
+    .filter(x => x != null); return v.length ? Math.round(median(v)) : null; });
+  const prevWindow = lastDays(THRESHOLDS.trendDays, THRESHOLDS.trendDays);
+  const medPrevDaily = tDays.map((d, i) => {
+    const pd = prevWindow[i]; if (!pd) return null;
+    const v = inRange(aTrend, [pd]).map(minsOf).filter(x => x != null);
+    return v.length ? Math.round(median(v)) : null; });
+  chartCard("sec-speed", "Speed to Lead", "median minutes · business hours",
+    [{ label: "This Period", color: C1 },
+     { label: "Previous Period", color: C6, dashed: true }],
+    (b, wk) => {
+      let d1 = tDays, v1 = medDaily, v2 = medPrevDaily;
+      if (wk) { const w1 = weekly(tDays, medDaily, "median");
+        d1 = w1.days; v1 = w1.values;
+        v2 = weekly(tDays, medPrevDaily, "median").values; }
+      lineArea(b, d1, [
+        { label: "This period", color: C1, values: v1, area: true, fmtV: v => v + "m" },
+        { label: "Previous period", color: C6, values: v2, dashed: true, fmtV: v => v + "m" }]);
+    });
+  /* 3 — untouched + % of tracked (secondary axis) */
+  const unDaily = dailyCounts(aTrend, tDays, r => r.ts === "Untouched");
+  const unPct = tDays.map((d, i) => {
+    const tr = inRange(aTrend, [d]).filter(r => r.ts).length;
+    return tr ? Math.round(100 * unDaily[i] / tr) : null; });
+  chartCard(null, "Untouched Leads Over Time", "by day received",
+    [{ label: "Untouched", color: C3 }, { label: "% of Tracked", color: C2, dashed: true }],
+    (b, wk) => {
+      let d1 = tDays, v1 = unDaily, v2 = unPct;
+      if (wk) { const w1 = weekly(tDays, unDaily, "sum");
+        d1 = w1.days; v1 = w1.values;
+        v2 = weekly(tDays, unPct, "median").values; }
+      lineArea(b, d1, [
+        { label: "Untouched", color: C3, values: v1, area: true },
+        { label: "% of tracked", color: C2, values: v2, dashed: true,
+          axis: "y2", fmtV: v => v + "%" }],
+        { y2: { fmt: v => v + "%" } });
+    });
+
+  /* alerts & risks rail */
+  const acard = h("div", "card alertcard", mid); acard.id = "sec-alerts";
+  const ahead = h("div", "chead", acard);
+  h("h2", null, ahead, "Alerts & Risks");
+  const liveN = alerts.filter(x => !x.ack).length;
+  const ackN = alerts.length - liveN;
+  h("span", "cap", ahead, (liveN ? liveN + " active" : "all clear")
+    + (ackN ? " · " + ackN + " known" : ""));
+  let showAllAlerts = false;
+  const va = h("button", "viewall", ahead, alerts.length > 4 ? "View all" : "");
+  const abody = h("div", "cbody", acard);
+  const drawAlerts = () => {
+    abody.textContent = "";
+    if (!alerts.length) {
+      const row = h("div", "alertrow", abody);
+      row.appendChild(icon("shield", css("--good"), 15));
+      const tx = h("div", null, row);
+      h("div", "t", tx, "No active alerts");
+      h("div", "x", tx, "All monitored thresholds are green in this view.");
+      h("span", "sevchip ok", row, "OK");
+      return;
+    }
+    (showAllAlerts ? alerts : alerts.slice(0, 5)).forEach(al => {
+      const row = h("div", "alertrow", abody);
+      row.appendChild(icon(al.title.includes("feed") ? "shield"
+        : al.title.includes("Duplicate") ? "repeat"
+        : al.title.includes("untouched") ? "bell" : "clock",
+        al.ack ? css("--muted") : al.sev === "crit" ? css("--crit") : css("--warn"), 15));
+      const tx = h("div", null, row);
+      h("div", "t", tx, al.title);
+      h("div", "x", tx, al.detail + " (" + al.chip + ")"
+        + (al.ack ? " — " + al.ack : ""));
+      h("span", "sevchip " + (al.ack ? "ok" : al.sev === "crit" ? "hi" : "md"),
+        row, al.ack ? "Known" : al.sev === "crit" ? "High" : "Medium");
+    });
+  };
+  va.addEventListener("click", () => { showAllAlerts = !showAllAlerts;
+    va.textContent = showAllAlerts ? "Collapse" : "View all"; drawAlerts(); });
+  drawAlerts();
+
+  /* ---------- bottom row: source table · donut · forms ---------- */
+  const bot = h("div", "botgrid", app);
+
+  /* source performance */
+  const perfCard = h("div", "card", bot); perfCard.id = "sec-perf";
+  const ph = h("div", "chead", perfCard);
+  h("h2", null, ph, "Source Performance Overview");
+  const pb = h("div", "cbody", perfCard);
+  const tbl = h("table", "perf", pb);
+  const thr = h("tr", null, h("thead", null, tbl));
+  ["Source", "New Leads", "Appts Set", "Appt Rate", "Mins to Touch", "Untouched",
+   "Trend (" + (FILT.range === "all" ? (D.days_kept || 30) : THRESHOLDS.trendDays) + "d)"]
+    .forEach(c => h("th", null, thr, c));
+  const tbody = h("tbody", null, tbl);
+  const srcRows = [];
+  if (FILT.source === "all" || FILT.source === "andersen") {
+    const appts = cnt(a, isBookedA);
+    srcRows.push({ name: "Andersen", color: C1, leads: newNow, appts,
+      rate: pct(appts, newNow || cnt(a, () => true)),
+      mins: medNow == null ? null : Math.round(medNow),
+      un: unNow, unPct: pct(unNow, a.filter(r => r.ts).length),
+      trend: dailyCounts(aTrend, sD) });
+  }
+  if (avMatch()) {
+    const appts = cnt(av, r => r.bs === "Appointment booked");
+    srcRows.push({ name: "Avoca", color: C2, leads: av.length, appts,
+      rate: pct(appts, av.length), mins: null, un: null, unPct: null,
+      trend: dailyCounts(AV, sD) });
+  }
+  if (lcMatch()) {
+    const appts = cnt(lc, r => r.t === "New Appointment");
+    srcRows.push({ name: "LeadCertain", color: C3, leads: lc.length, appts,
+      rate: pct(appts, lc.length), mins: null, un: null, unPct: null,
+      trend: dailyCounts(LC, sD) });
+  }
+  srcRows.forEach(sr => {
+    const tr = h("tr", null, tbody);
+    const td0 = h("td", null, tr);
+    const dot = h("span", "srcdot", td0); dot.style.background = sr.color;
+    td0.append(sr.name);
+    h("td", "num", tr, fmt(sr.leads));
+    h("td", "num", tr, fmt(sr.appts));
+    h("td", "num", tr, sr.rate);
+    h("td", "num", tr, sr.mins == null ? "—" : sr.mins + "m");
+    h("td", "num", tr, sr.un == null ? "—" : `${fmt(sr.un)} (${sr.unPct})`);
+    const tdt = h("td", null, tr); tdt.style.width = "90px";
+    const spark = h("div", null, tdt); sparkline(spark, sr.trend, sr.color);
+  });
+  if (!srcRows.length) h("div", "empty", pb, "No sources in view");
+  const pf = h("div", "cfoot", perfCard);
+  const pfa = h("a", null, pf, "View store & agent detail →");
+  pfa.addEventListener("click", () => document.getElementById("sec-agents")
+    .scrollIntoView({ behavior: "smooth" }));
+
+  /* lead mix: what share of everything received is new vs re-inquiry,
+     with a per-store / per-source breakdown under the donut */
+  const mcard = h("div", "card", bot); mcard.id = "sec-mix";
+  const mhd = h("div", "chead", mcard);
+  h("h2", null, mhd, "Lead Mix");
+  h("span", "cap", mhd, "new vs duplicate re-inquiries · Andersen");
+  h("div", "grow", mhd);
+  const msel = h("select", null, mhd);
+  [["s", "By Store"], ["src", "By Source"]].forEach(([v, t]) => {
+    const o = h("option", null, msel, t); o.value = v; });
+  try { msel.value = localStorage.getItem("leadops-mixdim") || "s"; }
+  catch (e) {}
+  const mbd = h("div", "cbody", mcard);
+  const mixNew = cnt(a, r => resKey(r) === "Success");
+  const mixDup = cnt(a, r => resKey(r) === "Duplicate");
+  const mixOther = a.length - mixNew - mixDup;
+  if (a.length) {
+    donut(mbd, [
+      { label: "New", value: mixNew, color: C1 },
+      { label: "Duplicate (re-inquiry)", value: mixDup, color: C3 },
+      { label: "Other", value: mixOther, color: C5 },
+    ], fmt(a.length), "Total Received");
+  } else h("div", "empty", mbd, "No leads in view");
+  const mtb = h("div", null, mbd);
+  const drawMix = () => {
+    mtb.textContent = "";
+    if (!a.length) return;
+    const dim = msel.value;
+    const groups = new Map();
+    for (const r of a) {
+      const k = dim === "s" ? (r.s ? storeLabel(r.s) : "(no store)")
+                            : (r.src || "(no source)");
+      if (!groups.has(k)) groups.set(k, { tot: 0, nw: 0, dp: 0 });
+      const g = groups.get(k); g.tot++;
+      const rk = resKey(r);
+      if (rk === "Success") g.nw++; else if (rk === "Duplicate") g.dp++;
+    }
+    h("div", "micro", mtb, (dim === "s" ? "By store" : "By source") +
+      " — % new vs % re-inquiry");
+    const mbox = h("div", "scrollbox", mtb);
+    [...groups].sort((x, y) => y[1].tot - x[1].tot).forEach(([label, g]) => {
+      const row = h("div", "formrow", mbox);
+      const fl = h("span", "fl", row, label);
+      fl.title = `${label}: ${g.nw} new · ${g.dp} re-inquiry · ` +
+                 `${g.tot - g.nw - g.dp} other`;
+      h("span", "cnt num", row, fmt(g.tot));
+      const track = h("div", "track", row);
+      track.style.display = "flex";
+      track.style.overflow = "hidden";
+      const b1 = h("div", "bar", track);
+      b1.style.width = Math.round(100 * g.nw / g.tot) + "%";
+      b1.style.background = C1;
+      b1.style.borderRadius = "0";
+      const b2 = h("div", "bar", track);
+      b2.style.width = Math.round(100 * g.dp / g.tot) + "%";
+      b2.style.background = C3;
+      b2.style.borderRadius = "0";
+      h("span", "pctv num", row,
+        pct(g.nw, g.tot) + " / " + pct(g.dp, g.tot));
+    });
+  };
+  msel.addEventListener("change", () => {
+    try { localStorage.setItem("leadops-mixdim", msel.value); } catch (e) {}
+    drawMix();
+  });
+  drawMix();
+
+  /* touch outcomes donut */
+  const dcard = h("div", "card", bot); dcard.id = "sec-touch";
+  const dh = h("div", "chead", dcard);
+  h("h2", null, dh, "Touch Outcomes");
+  if (agentName) h("span", "scopechip", dh, "agent: " + agentName);
+  const db = h("div", "cbody", dcard);
+  const tracked = aT.filter(r => r.ts);
+  donut(db, [
+    { label: "Appt Set", value: tracked.filter(r => r.ts === "Appt Set").length, color: C1 },
+    { label: "Touched", value: tracked.filter(r => r.ts === "Touched").length, color: C2 },
+    { label: "Untouched", value: tracked.filter(r => r.ts === "Untouched").length, color: C3 },
+  ], fmt(tracked.length), "Total Tracked");
+  if (!tracked.length) h("div", "empty", db, "No tracked leads in view");
+  /* speed distribution under the donut (same agent scope) */
+  const BUCKETS = [["≤5m", 5], ["6–15m", 15], ["16–30m", 30], ["31–60m", 60],
+    ["1–4h", 240], [">4h", Infinity]];
+  const minsArr = aT.map(minsOf).filter(v => v != null);
+  if (minsArr.length) {
+    h("div", "micro", db, "Speed-to-lead distribution");
+    BUCKETS.forEach(([label, max], i) => {
+      const v = minsArr.filter(x => x <= max && (i === 0 || x > BUCKETS[i - 1][1])).length;
+      const row = h("div", "formrow", db);
+      h("span", "fl", row, label);
+      h("span", "cnt num", row, fmt(v));
+      const track = h("div", "track", row);
+      const bar = h("div", "bar", track);
+      bar.style.width = Math.round(100 * v / Math.max(...BUCKETS.map(([l2, m2], j) =>
+        minsArr.filter(x => x <= m2 && (j === 0 || x > BUCKETS[j - 1][1])).length), 1)) + "%";
+      bar.style.background = C2;
+      h("span", "pctv num", row, pct(v, minsArr.length));
+    });
+  }
+
+  /* lead sources breakdown — primary sources, click to drill into subs */
+  const scard = h("div", "card", bot); scard.id = "sec-forms";
+  const sch = h("div", "chead", scard);
+  h("h2", null, sch, "Lead Sources");
+  h("span", "cap", sch, "Andersen · click a source for its sub-sources");
+  const scb = h("div", "cbody", scard);
+  const srcC = [...counter(a, r => r.src || "(none)")].sort((x, y) => y[1] - x[1]);
+  const SCOLORS = [C1, C2, C3, C4, C5, C6];
+  let srcExpanded = false;
+  const openSrc = new Set();
+  const drawSources = () => {
+    scb.textContent = "";
+    if (!srcC.length) { h("div", "empty", scb, "No data in view"); return; }
+    const maxN = srcC[0][1];
+    (srcExpanded ? srcC : srcC.slice(0, 8)).forEach(([label, n], i) => {
+      const row = h("div", "formrow", scb);
+      row.style.cursor = "pointer";
+      row.title = "Show sub-sources";
+      const fl = h("span", "fl", row, (openSrc.has(label) ? "▾ " : "▸ ") + label);
+      fl.title = label;
+      h("span", "cnt num", row, fmt(n));
+      const track = h("div", "track", row);
+      const bar = h("div", "bar", track);
+      bar.style.width = Math.max(Math.round(100 * n / maxN), 2) + "%";
+      bar.style.background = SCOLORS[i % SCOLORS.length];
+      h("span", "pctv num", row, pct(n, a.length));
+      row.addEventListener("click", () => {
+        if (openSrc.has(label)) openSrc.delete(label); else openSrc.add(label);
+        drawSources();
+      });
+      if (openSrc.has(label)) {
+        const subs = [...counter(a.filter(r => (r.src || "(none)") === label),
+          r => r.sub || "(none)")].sort((x, y) => y[1] - x[1]);
+        subs.slice(0, 10).forEach(([sl, sn]) => {
+          const srow = h("div", "formrow", scb);
+          srow.style.paddingLeft = "18px";
+          const sfl = h("span", "fl", srow, sl);
+          sfl.title = sl; sfl.style.opacity = "0.75";
+          h("span", "cnt num", srow, fmt(sn));
+          const st = h("div", "track", srow);
+          const sb2 = h("div", "bar", st);
+          sb2.style.width = Math.max(Math.round(100 * sn / Math.max(subs[0][1], 1)), 2) + "%";
+          sb2.style.background = SCOLORS[i % SCOLORS.length];
+          sb2.style.opacity = "0.55";
+          h("span", "pctv num", srow, pct(sn, n));
+        });
+        if (subs.length > 10)
+          h("div", "micro", scb, `+${subs.length - 10} more sub-source(s)`);
+      }
+    });
+  };
+  drawSources();
+  if (srcC.length > 8) {
+    const sf = h("div", "cfoot", scard);
+    const sfa = h("a", null, sf, "View all sources →");
+    sfa.addEventListener("click", () => { srcExpanded = !srcExpanded;
+      sfa.textContent = srcExpanded ? "Show top 8" : "View all sources →";
+      drawSources(); });
+  }
+
+  /* form types breakdown */
+  const fcard = h("div", "card", bot); fcard.id = "sec-formtypes";
+  const fh = h("div", "chead", fcard);
+  h("h2", null, fh, "Form Types Breakdown");
+  h("span", "cap", fh, "Andersen submissions");
+  const fb = h("div", "cbody", fcard);
+  const formC = [...counter(a, r => r.f || "(none)")].sort((x, y) => y[1] - x[1]);
+  const FCOLORS = [C1, C2, C3, C4, C5, C6];
+  let formsExpanded = false;
+  const drawForms = () => {
+    fb.textContent = "";
+    if (!formC.length) { h("div", "empty", fb, "No data in view"); return; }
+    const maxN = formC[0][1];
+    (formsExpanded ? formC : formC.slice(0, 6)).forEach(([label, n], i) => {
+      const row = h("div", "formrow", fb);
+      const fl = h("span", "fl", row, label); fl.title = label;
+      h("span", "cnt num", row, fmt(n));
+      const track = h("div", "track", row);
+      const bar = h("div", "bar", track);
+      bar.style.width = Math.max(Math.round(100 * n / maxN), 2) + "%";
+      bar.style.background = FCOLORS[i % FCOLORS.length];
+      h("span", "pctv num", row, pct(n, a.length));
+    });
+  };
+  drawForms();
+  if (formC.length > 6) {
+    const ff = h("div", "cfoot", fcard);
+    const ffa = h("a", null, ff, "View all form types →");
+    ffa.addEventListener("click", () => { formsExpanded = !formsExpanded;
+      ffa.textContent = formsExpanded ? "Show top 6" : "View all form types →";
+      drawForms(); });
+  }
+
+  /* arrival window: in vs after company open hours (ET for all stores) */
+  const awc = h("div", "card", bot); awc.id = "sec-arrival";
+  const awh = h("div", "chead", awc);
+  h("h2", null, awh, "Arrival Window");
+  h("span", "cap", awh, "ET clock, all stores · M–F 8:00a–10:30p · S–S 9a–8p");
+  const awb = h("div", "cbody", awc);
+  const awIn = cnt(a, r => r.aw === "In Hours");
+  const awOut = cnt(a, r => r.aw === "After Hours");
+  const awTot = awIn + awOut;
+  if (!awTot) h("div", "empty", awb, "No classified leads in view");
+  else {
+    [["In Hours", awIn, C2], ["After Hours", awOut, C4]].forEach(([label, n, color]) => {
+      const row = h("div", "formrow", awb);
+      h("span", "fl", row, label);
+      h("span", "cnt num", row, fmt(n));
+      const track = h("div", "track", row);
+      const bar = h("div", "bar", track);
+      bar.style.width = Math.max(Math.round(100 * n / Math.max(awIn, awOut, 1)), 2) + "%";
+      bar.style.background = color;
+      h("span", "pctv num", row, pct(n, awTot));
+    });
+    const awUn = w => { const t2 = a.filter(r => r.aw === w && r.ts);
+      return t2.length ? pct(cnt(t2, r => r.ts === "Untouched"), t2.length) : "—"; };
+    h("div", "micro", awb,
+      `Untouched rate — in-hours ${awUn("In Hours")} · after-hours ${awUn("After Hours")}`);
+    const awBlank = a.length - awTot;
+    if (awBlank > 0)
+      h("div", "micro", awb, `${fmt(awBlank)} unclassified (pre-column or date-only)`);
+  }
+
+  /* ---------- agents & teams ---------- */
+  const team = h("div", "teamgrid", app); team.id = "sec-agents";
+  /* agent leaderboard */
+  const agc = h("div", "card", team);
+  const agh = h("div", "chead", agc);
+  h("h2", null, agh, "Agent Leaderboard");
+  h("span", "cap", agh, "first touches credited · fresh + duplicates");
+  const agb = h("div", "cbody", agc);
+  const agents = new Map();
+  for (const r of a) { if (!isTouched(r) || !r.by) continue;
+    if (!agents.has(r.by)) agents.set(r.by, { touches: 0, appt: 0, mins: [] });
+    const ag = agents.get(r.by); ag.touches++;
+    if (r.ts === "Appt Set") ag.appt++;
+    const m = minsOf(r); if (m != null) ag.mins.push(m); }
+  const agRows = [...agents].sort((x, y) => y[1].touches - x[1].touches).slice(0, 12);
+  if (agRows.length) {
+    const at = h("table", "mini", agb);
+    const atr = h("tr", null, h("thead", null, at));
+    ["Agent", "Touches", "Appts Set", "Med Mins"].forEach(c2 => h("th", null, atr, c2));
+    const atb = h("tbody", null, at);
+    agRows.forEach(([name, ag]) => {
+      const tr = h("tr", null, atb);
+      h("td", null, tr, name.replace(/^@\w+ - /, ""));
+      h("td", null, tr, fmt(ag.touches));
+      h("td", null, tr, fmt(ag.appt));
+      h("td", null, tr, ag.mins.length ? Math.round(median(ag.mins)) + "m" : "—");
+    });
+  } else h("div", "empty", agb, "No touches in view");
+  /* store ranking */
+  const stc = h("div", "card", team);
+  const sth = h("div", "chead", stc);
+  h("h2", null, sth, "Store Ranking");
+  h("span", "cap", sth, "volume · coverage · speed");
+  const stb = h("div", "cbody", stc);
+  const stores = new Map();
+  for (const r of a) { const s = r.s || "?";
+    if (!stores.has(s)) stores.set(s, { total: 0, booked: 0, tracked: 0,
+      touched: 0, mins: [] });
+    const o = stores.get(s); o.total++;
+    if (isBookedA(r)) o.booked++;
+    if (r.ts) o.tracked++;
+    if (isTouched(r)) { o.touched++; const m = minsOf(r); if (m != null) o.mins.push(m); } }
+  const stRows = [...stores].sort((x, y) => y[1].total - x[1].total);
+  if (stRows.length) {
+    const st = h("table", "mini", stb);
+    const str = h("tr", null, h("thead", null, st));
+    ["Store", "Leads", "Booked", "Touch %", "Med Mins", ""].forEach(c2 => h("th", null, str, c2));
+    const stbody = h("tbody", null, st);
+    stRows.forEach(([s, o]) => {
+      const tr = h("tr", null, stbody);
+      h("td", null, tr, storeLabel(s));
+      h("td", null, tr, fmt(o.total));
+      h("td", null, tr, pct(o.booked, o.total));
+      const tp = o.tracked ? Math.round(100 * o.touched / o.tracked) : null;
+      h("td", null, tr, tp == null ? "—" : tp + "%");
+      const med = o.mins.length ? median(o.mins) : null;
+      h("td", null, tr, med == null ? "—" : Math.round(med) + "m");
+      const tds = h("td", null, tr);
+      const bad = (tp != null && tp < THRESHOLDS.touchPctWarn) ||
+        (med != null && med > THRESHOLDS.medMinsWarn);
+      h("span", "stdot " + (tp != null && tp < 50 ? "crit" : bad ? "warn" : "ok"), tds);
+    });
+  } else h("div", "empty", stb, "No data in view");
+
+  /* ---------- footnote ---------- */
+  const fn = document.getElementById("footnote");
+  fn.textContent = "";
+  fn.appendChild(icon("info", "currentColor", 14));
+  fn.append(`Touch metrics are based on tracked leads (48 h tracking window). ` +
+    `Wait times count working hours only — Mon–Fri 8:00a–10:30p, ` +
+    `Sat–Sun 9:00a–8:00p ET; time outside these windows does not accrue. ` +
+    `Showing ${rangeOf().label.toLowerCase()}` +
+    (rangeOf().prevLabel ? `, compared to ${rangeOf().prevLabel}.` : `.`) +
+    (LIVE ? ` Data refreshes every 15 min; page reloads every 5 min.`
+      : ` SAMPLE DATA — data.js not found.`));
+}
+
+renderNav();
+window.__booted = true;
+render();
+scrollSpy();
+setTimeout(() => location.reload(), 5 * 60 * 1000);
+};
+
+/* ============================================================
+   UNLOCK GATE — data.js is encrypted at rest (window.DASH_ENC,
+   PBKDF2-SHA256 → AES-256-GCM, written by pull_data.py). Ask for
+   the passphrase once per browser session; cache the derived key
+   in sessionStorage so the 5-min auto-reload and 30-min data
+   refreshes stay silent. Plaintext window.DASH (legacy) or no
+   data at all (sample mode) boots without a prompt.
+   ============================================================ */
+(function () {
+  const b64d = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  const b64e = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+  let theKey = null;   // retained after a successful decrypt (stale refresh)
+  /* Cache-busted refetch of data.js — GitHub Pages' CDN caches it for
+     10 min, so a plain reload can keep serving the previous snapshot. A
+     unique query string always reaches the origin. */
+  async function freshEnc() {
+    try {
+      const r = await fetch("data.js?fresh=" + Date.now(), { cache: "reload" });
+      if (!r.ok) return null;
+      const t = await r.text();
+      const i = t.indexOf("{"), j = t.lastIndexOf("}");
+      return (i >= 0 && j > i) ? JSON.parse(t.slice(i, j + 1)) : null;
+    } catch (e) { return null; }
+  }
+  const boot = async () => {
+    /* A tab can sit locked for hours, and the CDN can serve stale files:
+       if what we decrypted is old, pull the latest ciphertext past the
+       cache and decrypt it with the key we already have. */
+    try {
+      const p = window.DASH && window.DASH.pulled_at;   // UTC "YYYY-MM-DD HH:MM"
+      const age = p ? (Date.now() - new Date(p.replace(" ", "T") + ":00Z")) / 60000
+                    : 0;
+      if (age > 20 && theKey) {
+        const ne = await freshEnc();
+        if (ne && ne.ct && ne.nonce !== window.DASH_ENC.nonce) {
+          const pt = await crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: b64d(ne.nonce) }, theKey, b64d(ne.ct));
+          window.DASH = JSON.parse(new TextDecoder().decode(pt));
+        }
+      }
+    } catch (e) {}
+    const l = document.getElementById("lockscreen");
+    if (l) l.remove();
+    window.__LEADOPS_MAIN();
+  };
+  const enc = window.DASH_ENC;
+  if (!enc) { boot(); return; }
+
+  const ov = document.createElement("div"); ov.id = "lockscreen";
+  ov.style.cssText = "position:fixed;inset:0;z-index:9999;display:flex;" +
+    "align-items:center;justify-content:center;background:#14161f;";
+  ov.innerHTML =
+    '<div style="width:320px;max-width:90vw;background:#1c1f2b;border:1px solid #333a4d;' +
+    'border-radius:12px;padding:28px;font-family:system-ui,\'Segoe UI\',sans-serif;text-align:center;">' +
+    '<div style="font-size:15px;font-weight:700;color:#e8eaf2;margin-bottom:2px;">Lead Ops Intelligence</div>' +
+    '<div style="font-size:11px;color:#8b91a7;margin-bottom:18px;">Enter the dashboard passphrase</div>' +
+    '<input id="lockpass" type="password" autocomplete="current-password" ' +
+    'style="width:100%;box-sizing:border-box;background:#12141d;color:#e8eaf2;border:1px solid #333a4d;' +
+    'border-radius:8px;padding:10px 12px;font-size:14px;outline:none;">' +
+    '<button id="lockgo" style="width:100%;margin-top:10px;background:#5865f2;color:#fff;border:0;' +
+    'border-radius:8px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;">Unlock</button>' +
+    '<div id="lockmsg" style="font-size:11px;color:#e8747c;margin-top:10px;min-height:14px;"></div></div>';
+  document.body.appendChild(ov);
+  const inp = ov.querySelector("#lockpass"), btn = ov.querySelector("#lockgo"),
+        msg = ov.querySelector("#lockmsg");
+
+  async function decryptWith(key) {
+    const pt = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: b64d(enc.nonce) }, key, b64d(enc.ct));
+    window.DASH = JSON.parse(new TextDecoder().decode(pt));
+    theKey = key;
+  }
+  async function tryPass(pass) {
+    const km = await crypto.subtle.importKey("raw",
+      new TextEncoder().encode(pass), "PBKDF2", false, ["deriveKey"]);
+    const key = await crypto.subtle.deriveKey(
+      { name: "PBKDF2", salt: b64d(enc.salt), iterations: enc.iter, hash: "SHA-256" },
+      km, { name: "AES-GCM", length: 256 }, true, ["decrypt"]);
+    await decryptWith(key);
+    try { sessionStorage.setItem("leadops-key",
+      b64e(await crypto.subtle.exportKey("raw", key)) + "|" + enc.salt);
+    } catch (e) {}
+  }
+  async function tryCached() {
+    let cached; try { cached = sessionStorage.getItem("leadops-key"); }
+    catch (e) { return false; }
+    if (!cached) return false;
+    const [raw, salt] = cached.split("|");
+    if (salt !== enc.salt) return false;   // passphrase/salt rotated
+    try {
+      const key = await crypto.subtle.importKey("raw", b64d(raw),
+        { name: "AES-GCM" }, false, ["decrypt"]);
+      await decryptWith(key);
+      return true;
+    } catch (e) { return false; }
+  }
+  async function submit() {
+    msg.textContent = ""; btn.disabled = true;
+    try { await tryPass(inp.value); boot(); }
+    catch (e) { btn.disabled = false; inp.value = "";
+      msg.textContent = "Wrong passphrase."; inp.focus(); }
+  }
+  btn.addEventListener("click", submit);
+  inp.addEventListener("keydown", e => { if (e.key === "Enter") submit(); });
+  /* The app's own 5-min reload only runs after unlock — keep a LOCKED tab
+     fresh too, so unlocking hours later never shows old data. Holds off
+     while a passphrase is being typed. */
+  setTimeout(function tick() {
+    if (!document.getElementById("lockscreen")) return;
+    if (inp.value) { setTimeout(tick, 30000); return; }
+    location.reload();
+  }, 5 * 60 * 1000);
+  if (!(window.crypto && crypto.subtle)) {
+    msg.textContent = "This browser can't decrypt here (needs localhost or file://).";
+    return;
+  }
+  tryCached().then(ok => { if (ok) boot(); else inp.focus(); });
+})();
+</script>
+</body>
+</html>

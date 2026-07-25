@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lead Queue</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #14161f; color: #e8eaf2;
+         font-family: system-ui, "Segoe UI", sans-serif; padding: 12px;
+         max-width: 1080px; margin: 0 auto; }
+  header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px;
+           flex-wrap: wrap; }
+  h1 { font-size: 17px; }
+  #stamp { font-size: 11.5px; color: #8b91a7; }
+  #refresh { margin-left: auto; background: #262b3d; color: #e8eaf2; border: 0;
+             border-radius: 8px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
+  h2 { font-size: 12px; color: #8b91a7; text-transform: uppercase;
+       letter-spacing: .06em; margin: 14px 0 6px; }
+  .lead { display: flex; align-items: center; gap: 10px; background: #1c1f2b;
+          border: 1px solid #2a3046; border-radius: 10px; padding: 6px 12px;
+          margin-bottom: 5px; }
+  .who { flex: 1; min-width: 0; }
+  .nm { font-size: 14.5px; font-weight: 600; white-space: nowrap;
+        overflow: hidden; text-overflow: ellipsis; }
+  .meta { font-size: 11.5px; color: #8b91a7; margin-top: 2px; }
+  .age { font-size: 12px; font-weight: 700; white-space: nowrap; }
+  .age.hot { color: #6CC14C; } .age.warm { color: #e5b567; }
+  .age.cold { color: #e8747c; }
+  .tag { font-size: 10px; background: #2a3046; border-radius: 5px;
+         padding: 2px 6px; color: #a9b0c7; margin-left: 6px; }
+  .claimed { font-size: 11px; font-weight: 700; color: #6CC14C;
+             background: #1e3325; border-radius: 6px; padding: 4px 8px;
+             white-space: nowrap; }
+  a.open { background: #5865f2; color: #fff; text-decoration: none;
+           border-radius: 8px; padding: 6px 14px; font-size: 12.5px;
+           font-weight: 600; white-space: nowrap; }
+  a.open.none { background: #2a3046; color: #8b91a7; pointer-events: none; }
+  .empty { color: #8b91a7; font-size: 13px; padding: 18px 4px; }
+  #stats { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .stat { flex: 1; min-width: 104px; background: #1c1f2b;
+          border: 1px solid #2a3046; border-radius: 10px; padding: 7px 12px;
+          display: flex; align-items: baseline; gap: 8px; }
+  .stat .v { font-size: 19px; font-weight: 700; }
+  .stat .l { font-size: 10.5px; color: #8b91a7;
+             text-transform: uppercase; letter-spacing: .05em; }
+  .panel { background: #1c1f2b; border: 1px solid #2a3046; border-radius: 10px;
+           padding: 8px 12px; margin-bottom: 10px; }
+  .panel-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .panel-head .l { font-size: 10.5px; color: #8b91a7;
+                   text-transform: uppercase; letter-spacing: .05em; flex: 1; }
+  .panel-head select { background: #12141d; color: #e8eaf2; font-size: 11.5px;
+                       border: 1px solid #333a4d; border-radius: 6px; padding: 3px 8px; }
+  .pscroll { max-height: 148px; overflow-y: auto; padding-right: 4px; }
+  .pscroll::-webkit-scrollbar { width: 6px; }
+  .pscroll::-webkit-scrollbar-thumb { background: #2a3046; border-radius: 3px; }
+  .prow { display: grid;
+          grid-template-columns: minmax(104px, 1fr) 32px 1fr 62px;
+          gap: 10px; align-items: center; padding: 4px 0; font-size: 12.5px; }
+  .prow .pc { text-align: right; font-weight: 700; }
+  .prow .ptrack { height: 7px; background: #12141d; border-radius: 4px;
+                  display: flex; overflow: hidden; }
+  .prow .pfill { height: 100%; }
+  .prow .psplit { font-size: 11px; text-align: right; white-space: nowrap; }
+  .legend { display: flex; gap: 10px; font-size: 10.5px; color: #8b91a7; }
+  .legend i { display: inline-block; width: 8px; height: 8px;
+              border-radius: 2px; margin-right: 4px; }
+  #srcfilter { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+  .fgroup { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .fgroup .fl { font-size: 10.5px; color: #8b91a7; text-transform: uppercase;
+                letter-spacing: .05em; width: 52px; flex-shrink: 0; }
+  .chip { font-size: 11.5px; background: #1c1f2b; color: #e8eaf2;
+          border: 1px solid #333a4d; border-radius: 999px; padding: 4px 11px;
+          cursor: pointer; user-select: none; }
+  .chip:hover { border-color: #5865f2; }
+  .chip.off { opacity: .4; text-decoration: line-through; }
+  .seg { font-size: 11.5px; background: #1c1f2b; color: #8b91a7;
+         border: 1px solid #333a4d; border-radius: 999px; padding: 4px 12px;
+         cursor: pointer; user-select: none; }
+  .seg:hover { border-color: #5865f2; }
+  .seg.on { background: #5865f2; color: #fff; border-color: #5865f2; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Lead Queue</h1>
+  <span id="stamp">loading…</span>
+  <button id="refresh">Refresh</button>
+</header>
+<div id="stats"></div>
+<div id="srcfilter"></div>
+<div id="bydim"></div>
+<div id="list"><div class="empty">Unlocking…</div></div>
+
+<script src="queue_data.js"></script>
+<script>
+"use strict";
+(function () {
+  const b64d = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  const b64e = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+  const STORES = { "930": "Atlanta", "535": "NJ-NY Metro", "800": "Long Island",
+    "576": "Cincinnati", "867": "Indianapolis", "790": "Knoxville",
+    "890": "San Francisco", "868": "South Bend", "534": "Westchester",
+    "791": "Nashville", "792": "Chattanooga", "914": "Toronto" };
+  let theKey = null;
+
+  /* Claims. Two layers, merged at render:
+     • LOCAL (localStorage) — instant feedback on this device, 45-min TTL.
+     • SHARED (Google Apps Script store) — visible to EVERY agent, keyed by
+       a hash of the lead so no customer names leave the encrypted channel.
+     Shared is active only when the decrypted payload carries claims_api
+     (set up in the secret file); otherwise the queue stays per-device. */
+  const CLAIM_TTL_MIN = 45;
+  let claimsApi = null;          // {url, token} from the encrypted payload
+  let sharedClaims = {};         // hash -> {by, ts}
+  const hashCache = new Map();   // ckey -> 12-hex hash
+
+  function loadClaims() {
+    try { return JSON.parse(localStorage.getItem("queue-claims") || "{}"); }
+    catch (e) { return {}; }
+  }
+  function saveClaims(c) {
+    try { localStorage.setItem("queue-claims", JSON.stringify(c)); } catch (e) {}
+  }
+  const ckey = r => r.lid || (r.n + "|" + r.d);
+  const hashOf = r => hashCache.get(ckey(r)) || "";
+  function claim(key) {
+    const c = loadClaims(); c[key] = Date.now(); saveClaims(c);
+  }
+  function freshClaims(rows) {
+    const c = loadClaims(), keep = {}, keys = new Set(rows.map(ckey));
+    for (const [k, ts] of Object.entries(c))
+      if (Date.now() - ts < CLAIM_TTL_MIN * 60000 && keys.has(k))
+        keep[k] = ts;
+    saveClaims(keep);
+    return keep;
+  }
+
+  async function sha12(str) {
+    const buf = await crypto.subtle.digest("SHA-256",
+      new TextEncoder().encode(str));
+    return [...new Uint8Array(buf)].slice(0, 6)
+      .map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+  async function ensureHashes(rows) {
+    for (const r of rows) {
+      const k = ckey(r);
+      if (!hashCache.has(k)) hashCache.set(k, await sha12(k));
+    }
+  }
+
+  function agentName() {
+    let n;
+    try { n = localStorage.getItem("queue-agent"); } catch (e) {}
+    if (!n) {
+      n = (prompt("Your first name (shown to the team when you claim a lead):")
+           || "").trim().slice(0, 40);
+      try { localStorage.setItem("queue-agent", n); } catch (e) {}
+    }
+    return n || "someone";
+  }
+
+  async function pollShared() {
+    if (!claimsApi) return;
+    try {
+      const r = await fetch(claimsApi.url + "?token=" +
+        encodeURIComponent(claimsApi.token), { redirect: "follow" });
+      const j = await r.json();
+      if (j && j.claims) { sharedClaims = j.claims;
+        if (lastData) render(lastData); }
+    } catch (e) {}
+  }
+  async function postClaim(hash, action) {
+    if (!claimsApi || !hash) return;
+    try {
+      await fetch(claimsApi.url, { method: "POST", redirect: "follow",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ token: claimsApi.token, action: action,
+          key: hash, by: agentName() }) });
+    } catch (e) {}
+    pollShared();
+  }
+
+  const srcOf = r => r.src || "(no source)";
+  const storeOf = r => STORES[r.s] || r.s || "(no store)";
+  function loadSet(key) {
+    try { return new Set(JSON.parse(localStorage.getItem(key) || "[]")); }
+    catch (e) { return new Set(); }
+  }
+  function loadMix() {
+    try { return localStorage.getItem("queue-mix") || "all"; }
+    catch (e) { return "all"; }
+  }
+  let lastData = null;
+  function render(data) {
+    lastData = data;
+    const claims = freshClaims(data.rows);
+    const hiddenSrc = loadSet("queue-hidden-src");
+    const hiddenStore = loadSet("queue-hidden-store");
+    const mix = loadMix();
+    const rows = data.rows.filter(r =>
+      !hiddenSrc.has(srcOf(r)) && !hiddenStore.has(storeOf(r)) &&
+      (mix === "all" || (mix === "dup" ? r.dup : !r.dup)));
+    const filtered = hiddenSrc.size || hiddenStore.size || mix !== "all";
+    const list = document.getElementById("list");
+    list.textContent = "";
+    document.getElementById("stamp").textContent =
+      "updated " + agoText(data.generated_at) + " · " +
+      (filtered ? rows.length + " of " + data.rows.length : rows.length) +
+      " leads";
+
+    const filt = document.getElementById("srcfilter");
+    filt.textContent = "";
+    const hideGroup = (label, keyFn, storageKey, hiddenSet) => {
+      const counts = new Map();
+      for (const r of data.rows)
+        counts.set(keyFn(r), (counts.get(keyFn(r)) || 0) + 1);
+      if (counts.size <= 1) return;
+      const g = document.createElement("div"); g.className = "fgroup";
+      const fl = document.createElement("span"); fl.className = "fl";
+      fl.textContent = label; g.appendChild(fl);
+      [...counts].sort((x, y) => y[1] - x[1]).forEach(([v, n]) => {
+        const c = document.createElement("span");
+        c.className = "chip" + (hiddenSet.has(v) ? " off" : "");
+        c.textContent = v;
+        c.title = n + " in queue — click to " + (hiddenSet.has(v) ? "show" : "hide");
+        c.addEventListener("click", () => {
+          const h = loadSet(storageKey);
+          if (h.has(v)) h.delete(v); else h.add(v);
+          try { localStorage.setItem(storageKey, JSON.stringify([...h])); } catch (e) {}
+          render(lastData);
+        });
+        g.appendChild(c);
+      });
+      filt.appendChild(g);
+    };
+    hideGroup("sources", srcOf, "queue-hidden-src", hiddenSrc);
+    hideGroup("stores", storeOf, "queue-hidden-store", hiddenStore);
+
+    const tg = document.createElement("div"); tg.className = "fgroup";
+    const tfl = document.createElement("span"); tfl.className = "fl";
+    tfl.textContent = "type"; tg.appendChild(tfl);
+    [["all", "All"], ["new", "New"], ["dup", "Re-inquiry"]].forEach(([v, t]) => {
+      const s = document.createElement("span");
+      s.className = "seg" + (mix === v ? " on" : "");
+      s.textContent = t;
+      s.addEventListener("click", () => {
+        try { localStorage.setItem("queue-mix", v); } catch (e) {}
+        render(lastData);
+      });
+      tg.appendChild(s);
+    });
+    filt.appendChild(tg);
+    const linked = rows.filter(r => r.lid);
+    const nolink = rows.filter(r => !r.lid);
+    const fresh = linked.filter(r => r.age < 60).sort((a, b) => b.age - a.age);
+    const aging = linked.filter(r => r.age >= 60);
+    const stats = document.getElementById("stats");
+    stats.textContent = "";
+    const oldest = rows.length ? Math.max(...rows.map(r => r.age)) : 0;
+    const fmtAge = m => m < 60 ? m + "m" : (m / 60).toFixed(m < 600 ? 1 : 0) + "h";
+    [[fresh.length, "new — grab now", "#6CC14C"],
+     [aging.length, "aging linked", "#e5b567"],
+     [nolink.length, "needs lookup", "#a9b0c7"],
+     [fmtAge(oldest), "oldest waiting", oldest >= 240 ? "#e8747c" : "#e5b567"]
+    ].forEach(([v, l, color]) => {
+      const s = document.createElement("div"); s.className = "stat";
+      const vv = document.createElement("div"); vv.className = "v";
+      vv.textContent = v; vv.style.color = color;
+      const ll = document.createElement("div"); ll.className = "l";
+      ll.textContent = l;
+      s.append(vv, ll); stats.appendChild(s);
+    });
+    const bydim = document.getElementById("bydim");
+    bydim.textContent = "";
+    if (rows.length) {
+      let dim;
+      try { dim = localStorage.getItem("queue-dim") || "src"; }
+      catch (e) { dim = "src"; }
+      const panel = document.createElement("div"); panel.className = "panel";
+      const head = document.createElement("div"); head.className = "panel-head";
+      const lab = document.createElement("div"); lab.className = "l";
+      lab.textContent = "in queue · by " + (dim === "src" ? "source" : "store");
+      const sel = document.createElement("select");
+      [["src", "By source"], ["s", "By store"]].forEach(([v, t]) => {
+        const o = document.createElement("option");
+        o.value = v; o.textContent = t; if (v === dim) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.addEventListener("change", () => {
+        try { localStorage.setItem("queue-dim", sel.value); } catch (e) {}
+        render(lastData);
+      });
+      const legend = document.createElement("div"); legend.className = "legend";
+      legend.innerHTML = '<span><i style="background:#5865f2"></i>new</span>' +
+        '<span><i style="background:#d96fa8"></i>re-inquiry</span>';
+      head.append(lab, legend, sel);
+      const scroll = document.createElement("div"); scroll.className = "pscroll";
+      const groups = new Map();
+      for (const r of rows) {
+        const k = dim === "src" ? srcOf(r)
+                                : (STORES[r.s] || r.s || "(no store)");
+        if (!groups.has(k)) groups.set(k, { t: 0, dp: 0 });
+        const g = groups.get(k); g.t++; if (r.dup) g.dp++;
+      }
+      const sorted = [...groups].sort((x, y) => y[1].t - x[1].t);
+      const maxN = sorted.length ? sorted[0][1].t : 1;
+      sorted.forEach(([label, g]) => {
+        const row = document.createElement("div"); row.className = "prow";
+        const nm2 = document.createElement("div"); nm2.textContent = label;
+        nm2.style.whiteSpace = "nowrap"; nm2.style.overflow = "hidden";
+        nm2.style.textOverflow = "ellipsis"; nm2.title = label;
+        const pc = document.createElement("div"); pc.className = "pc";
+        pc.textContent = g.t;
+        const tr2 = document.createElement("div"); tr2.className = "ptrack";
+        const w = Math.max(Math.round(100 * g.t / maxN), 4);
+        const f1 = document.createElement("div"); f1.className = "pfill";
+        f1.style.background = "#5865f2";
+        f1.style.width = (w * (g.t - g.dp) / g.t) + "%";
+        const f2 = document.createElement("div"); f2.className = "pfill";
+        f2.style.background = "#d96fa8";
+        f2.style.width = (w * g.dp / g.t) + "%";
+        tr2.append(f1, f2);
+        const sp = document.createElement("div"); sp.className = "psplit";
+        sp.innerHTML = '<span style="color:#8fa0ff">' + (g.t - g.dp) +
+          '</span> · <span style="color:#d96fa8">' + g.dp + "</span>";
+        sp.title = (g.t - g.dp) + " new · " + g.dp + " re-inquiry";
+        row.append(nm2, pc, tr2, sp);
+        scroll.appendChild(row);
+      });
+      panel.append(head, scroll);
+      bydim.appendChild(panel);
+    }
+    const section = (title, rows, emptyText) => {
+      const h = document.createElement("h2"); h.textContent = title;
+      list.appendChild(h);
+      if (!rows.length) {
+        const e = document.createElement("div"); e.className = "empty";
+        e.textContent = emptyText; list.appendChild(e); return;
+      }
+      rows.forEach(r => {
+        const d = document.createElement("div"); d.className = "lead";
+        const who = document.createElement("div"); who.className = "who";
+        const nm = document.createElement("div"); nm.className = "nm";
+        nm.textContent = r.n;
+        if (r.dup) { const t = document.createElement("span");
+          t.className = "tag"; t.textContent = "re-inquiry"; nm.appendChild(t); }
+        const meta = document.createElement("div"); meta.className = "meta";
+        meta.textContent = (STORES[r.s] || r.s || "?") +
+          (r.src ? " · " + r.src : "") +
+          (r.addr ? " · " + r.addr : "") +
+          " · in " + r.d.slice(11, 16);
+        who.append(nm, meta);
+        const age = document.createElement("div");
+        age.className = "age " + (r.age < 30 ? "hot" : r.age < 240 ? "warm" : "cold");
+        age.textContent = r.age < 60 ? r.age + "m"
+          : (r.age / 60).toFixed(r.age < 600 ? 1 : 0) + "h";
+        const a = document.createElement("a");
+        a.className = "open";
+        a.textContent = r.lid ? "Open" : "Find";
+        a.href = r.lid
+          ? "https://www.enabledplus.com/InsertLock?L=" + r.lid +
+            "&SS=Y&SL=Y&P=FindALead"
+          : "https://www.enabledplus.com/FindALead";
+        a.target = "_blank";
+        a.addEventListener("click", () => {
+          claim(ckey(r));
+          postClaim(hashOf(r), "claim");
+          setTimeout(() => { if (lastData) render(lastData); }, 60);
+        });
+        d.append(who, age);
+        const shared = sharedClaims[hashOf(r)];
+        if (shared || claims[ckey(r)]) {
+          const c = document.createElement("span");
+          c.className = "claimed";
+          c.textContent = shared && shared.by ? "✓ " + shared.by : "✓ claimed";
+          c.title = "Click to release";
+          c.style.cursor = "pointer";
+          c.addEventListener("click", () => {
+            const lc2 = loadClaims(); delete lc2[ckey(r)]; saveClaims(lc2);
+            postClaim(hashOf(r), "release");
+            setTimeout(() => { if (lastData) render(lastData); }, 60);
+          });
+          d.appendChild(c);
+        }
+        d.appendChild(a);
+        list.appendChild(d);
+      });
+    };
+    section("New — grab these now", fresh, "Nothing new waiting. 🎉");
+    section("Aging — most overdue first", aging, "No aging leads. Queue is clear.");
+    if (nolink.length)
+      section("Needs manual lookup — no direct link", nolink,
+        "");
+  }
+
+  function agoText(pulledAtUtc) {
+    try {
+      const mins = Math.max(0, Math.round(
+        (Date.now() - new Date(pulledAtUtc.replace(" ", "T") + ":00Z")) / 60000));
+      return mins + " min ago";
+    } catch (e) { return "?"; }
+  }
+
+  let pollStarted = false;
+  async function show(data) {
+    claimsApi = data.claims_api || null;
+    await ensureHashes(data.rows);
+    render(data);
+    if (claimsApi && !pollStarted) {
+      pollStarted = true;
+      pollShared();
+      setInterval(pollShared, 60 * 1000);
+    }
+  }
+
+  async function decryptPayload(enc, key) {
+    const pt = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: b64d(enc.nonce) }, key, b64d(enc.ct));
+    return JSON.parse(new TextDecoder().decode(pt));
+  }
+  async function fetchEnc() {
+    try {
+      const r = await fetch("queue_data.js?fresh=" + Date.now(), { cache: "reload" });
+      if (!r.ok) return null;
+      const t = await r.text();
+      const i = t.indexOf("{"), j = t.lastIndexOf("}");
+      return (i >= 0 && j > i) ? JSON.parse(t.slice(i, j + 1)) : null;
+    } catch (e) { return null; }
+  }
+  async function refresh() {
+    if (!theKey) return;
+    const enc = (await fetchEnc()) || window.QUEUE_ENC;
+    try { show(await decryptPayload(enc, theKey)); } catch (e) {}
+  }
+
+  async function unlock(pass) {
+    const enc = window.QUEUE_ENC;
+    const km = await crypto.subtle.importKey("raw",
+      new TextEncoder().encode(pass), "PBKDF2", false, ["deriveKey"]);
+    const key = await crypto.subtle.deriveKey(
+      { name: "PBKDF2", salt: b64d(enc.salt), iterations: enc.iter, hash: "SHA-256" },
+      km, { name: "AES-GCM", length: 256 }, true, ["decrypt"]);
+    const data = await decryptPayload(enc, key);
+    theKey = key;
+    try { sessionStorage.setItem("floor-key",
+      b64e(await crypto.subtle.exportKey("raw", key)) + "|" + enc.salt); } catch (e) {}
+    show(data);
+  }
+
+  function showLock() {
+    const list = document.getElementById("list");
+    list.innerHTML =
+      '<div style="max-width:340px;margin:40px auto;text-align:center;">' +
+      '<div style="font-size:13px;color:#8b91a7;margin-bottom:12px;">' +
+      'Enter the team passphrase</div>' +
+      '<input id="qpass" type="password" autocomplete="current-password" ' +
+      'style="width:100%;box-sizing:border-box;background:#12141d;color:#e8eaf2;' +
+      'border:1px solid #333a4d;border-radius:8px;padding:12px;font-size:15px;">' +
+      '<button id="qgo" style="width:100%;margin-top:10px;background:#5865f2;' +
+      'color:#fff;border:0;border-radius:8px;padding:12px;font-size:14px;' +
+      'font-weight:600;cursor:pointer;">Unlock</button>' +
+      '<div id="qmsg" style="font-size:12px;color:#e8747c;margin-top:10px;' +
+      'min-height:15px;"></div></div>';
+    const inp = document.getElementById("qpass");
+    const go = async () => {
+      document.getElementById("qmsg").textContent = "";
+      try { await unlock(inp.value); }
+      catch (e) { inp.value = "";
+        document.getElementById("qmsg").textContent = "Wrong passphrase."; }
+    };
+    document.getElementById("qgo").addEventListener("click", go);
+    inp.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+    inp.focus();
+  }
+
+  async function gate() {
+    const enc = window.QUEUE_ENC;
+    if (!enc) {
+      document.getElementById("list").innerHTML =
+        '<div class="empty">No queue data published yet.</div>';
+      return;
+    }
+    try {
+      const cached = sessionStorage.getItem("floor-key");
+      if (cached) {
+        const [raw, salt] = cached.split("|");
+        if (salt === enc.salt) {
+          theKey = await crypto.subtle.importKey("raw", b64d(raw),
+            { name: "AES-GCM" }, false, ["decrypt"]);
+          show(await decryptPayload(enc, theKey));
+          return;
+        }
+      }
+    } catch (e) { theKey = null; }
+    showLock();
+  }
+
+  document.getElementById("refresh").addEventListener("click", refresh);
+  setInterval(refresh, 3 * 60 * 1000);   // silent re-fetch, no reload needed
+  gate();
+})();
+</script>
+</body>
+</html>
